@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Light cord + colour picker harness</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #fff; }
+  iframe { display: block; width: 100vw; height: 100vh; border: 0; }
+  #out { display: none; }
+</style>
+</head>
+<body>
+<!-- TEMPORARY test-only page: drives the real login.html (and then the real
+     dashboard) inside an iframe and writes PASS/FAIL lines into #out, which
+     the test script reads back through Chrome's --dump-dom.  Copied into
+     frontend/ for the run and deleted afterwards. -->
+<iframe id="f" src="login.html"></iframe>
+<pre id="out">running...</pre>
+
+<script>
+(function () {
+  'use strict';
+
+  const results = [];
+  const frame = document.getElementById('f');
+  const out = document.getElementById('out');
+  const pageErrors = [];
+
+  window.addEventListener('error', (e) => pageErrors.push('harness: ' + e.message));
+  window.addEventListener('unhandledrejection', (e) => pageErrors.push('harness rejection: ' + e.reason));
+
+  function check(label, ok, detail) {
+    results.push((ok ? 'PASS ' : 'FAIL ') + label + (detail ? '  [' + detail + ']' : ''));
+    out.textContent = results.join('\n');
+  }
+  const sleep = (ms) => new Promise((r) => window.setTimeout(r, ms));
+  const params = new URLSearchParams(location.search);
+  const step = params.get('step') || 'login';
+
+  /* jump every finite CSS transition to its end state so assertions on the
+     reveal/hide of the card never depend on animation timing */
+  function settle(doc) {
+    if (!doc.getAnimations) return;
+    doc.getAnimations().forEach((anim) => {
+      try {
+        const timing = anim.effect && anim.effect.getComputedTiming();
+        if (timing && timing.iterations !== Infinity) anim.finish();
+      } catch (e) { /* cancelled animation - nothing to finish */ }
+    });
+  }
+
+  async function waitFor(fn, timeout, every) {
+    const gap = every || 100;
+    const until = Date.now() + timeout;
+    let value = null;
+    while (Date.now() < until) {
+      try { value = fn(); } catch (e) { value = null; }
+      if (value) return value;
+      await sleep(gap);
+    }
+    return null;
+  }
+
+  function watchErrors(doc) {
+    try {
+      doc.defaultView.addEventListener('error', (e) => pageErrors.push('page: ' + e.message));
+      doc.defaultView.addEventListener('unhandledrejection',
+        (e) => pageErrors.push('page rejection: ' + e.reason));
+    } catch (e) { /* cross-origin - never happens here */ }
+  }
+
+  const grab = () => frame.contentDocument;
+  const root = () => grab() && grab().querySelector('.auth-page');
+  const card = () => grab() && grab().querySelector('.auth-card');
+  const handle = () => grab() && grab().getElementById('lightHandle');
+
+  /* lightcord.js writes --pull on the rig when it boots, so this proves the
+     whole login page (all of its scripts) is really ready to be driven */
+  function loginReady() {
+    const doc = grab();
+    const rig = doc && doc.getElementById('lightRig');
+    if (!rig) return false;
+    return /--pull/.test(rig.getAttribute('style') || '');
+  }
+
+  function dashboardReady(doc) {
+    return Boolean(doc && doc.getElementById('themeStyleBtn') &&
+      doc.querySelector('.module-card[data-module]'));
+  }
+
+  function lightState() {
+    const page = root();
+    if (!page) return null;
+    settle(grab());
+    const style = grab().defaultView.getComputedStyle(card());
+    return {
+      light: page.getAttribute('data-light'),
+      visibility: style.visibility,
+      opacity: parseFloat(style.opacity),
+      hint: grab().getElementById('lightHint').textContent.trim()
+    };
+  }
+  const cardShown = (s) => s && s.visibility !== 'hidden' && s.opacity > 0.5;
+  const cardHidden = (s) => s && (s.visibility === 'hidden' || s.opacity < 0.05);
+
+  /* ---------------------------------------------------------------- drag */
+  function pointer(doc, target, type, y) {
+    target.dispatchEvent(new doc.defaultView.PointerEvent(type, {
+      bubbles: true, cancelable: true, pointerId: 7, isPrimary: true,
+      button: 0, buttons: type === 'pointerup' ? 0 : 1, clientY: y, clientX: 200
+    }));
+  }
+
+  async function pullByDrag(doc) {
+    const el = doc.getElementById('lightHandle');
+    const rig = doc.getElementById('lightRig');
+    const top = el.getBoundingClientRect().top;
+    const dbg = ['top=' + top.toFixed(1),
+                 'scripts=' + Array.prototype.map.call(doc.scripts, (s) => s.src.split('/').pop()).join('+')];
+    pointer(doc, el, 'pointerdown', top + 4);
+    dbg.push('afterDown=' + rig.classList.contains('is-dragging'));
+    pointer(doc, el, 'pointermove', top + 20);
+    await sleep(30);
+    const stretch = rig.style.getPropertyValue('--pull');
+    dbg.push('pull=[' + stretch + ']');
+    pointer(doc, el, 'pointermove', top + 60);
+    await sleep(30);
+    pointer(doc, el, 'pointerup', top + 60);
+    await sleep(30);
+    dbg.push('afterUp=' + doc.querySelector('.auth-page').getAttribute('data-light'));
+    return dbg.join(' | ');
+  }
+
+  /* ------------------------------------------------------------ login run */
+  async function loginRun() {
+    const booted = await waitFor(loginReady, 12000, 100);
+    check('login page fully loaded (lightcord.js booted)', Boolean(booted));
+    if (!booted) return;
+    const doc = grab();
+    if (!doc) { check('login.html loaded in harness', false); return; }
+    watchErrors(doc);
+    check('lightcord.js booted before interaction',
+      /--pull/.test(doc.getElementById('lightRig').getAttribute('style') || ''),
+      'style=' + (doc.getElementById('lightRig').getAttribute('style') || '(none)'));
+
+    /* 1. first paint: dark room, form hidden */
+    check('page starts with the light OFF', root().getAttribute('data-light') === 'off');
+    let s = lightState();
+    check('login form hidden while the light is off', cardHidden(s),
+      'visibility=' + s.visibility + ' opacity=' + s.opacity);
+    check('instruction is shown', /Pull the cord to turn on the light/.test(s.hint), s.hint);
+    check('cord handle is a real button', doc.getElementById('lightHandle').tagName === 'BUTTON');
+
+    /* 2. pull (mouse drag) turns the light ON */
+    const stretch = await pullByDrag(doc);
+    await sleep(150);
+    s = lightState();
+    check('drag stretched the cord', /pull=\[\d/.test(stretch), stretch);
+    check('pull turns the light ON', s.light === 'on');
+    await sleep(250); settle(doc); await sleep(60);
+    s = lightState();
+    check('login form revealed when ON', cardShown(s),
+      'visibility=' + s.visibility + ' opacity=' + s.opacity);
+    check('heading is "Welcome Back!"',
+      /Welcome Back!/.test(doc.querySelector('.auth-card h3').textContent));
+
+    /* 3. credentials typed in are NOT cleared by switching the light off */
+    const email = doc.getElementById('email');
+    const pass = doc.getElementById('password');
+    email.value = 'keep.me@smartcampus.com';
+    pass.value = 'TypedBeforeToggle';
+
+    doc.getElementById('lightHandle').click();                 /* second pull */
+    await sleep(150); settle(doc); await sleep(60);
+    s = lightState();
+    check('second pull turns the light OFF', s.light === 'off');
+    check('login form hidden again', cardHidden(s),
+      'visibility=' + s.visibility + ' opacity=' + s.opacity);
+    check('switching off does not clear the form',
+      email.value === 'keep.me@smartcampus.com' && pass.value === 'TypedBeforeToggle');
+
+    doc.getElementById('lightHandle').click();                 /* third pull */
+    await sleep(150); settle(doc); await sleep(60);
+    s = lightState();
+    check('third pull turns the light back ON', s.light === 'on' && cardShown(s));
+
+    /* 4. the existing validation still rejects an empty form */
+    email.value = ''; pass.value = '';
+    doc.getElementById('loginForm').dispatchEvent(
+      new doc.defaultView.Event('submit', { bubbles: true, cancelable: true }));
+    await sleep(250); settle(doc);
+    check('empty form still shows the existing validation',
+      email.classList.contains('is-invalid') && pass.classList.contains('is-invalid'));
+
+    /* 5. wrong credentials -> the SERVER's error, no fake success */
+    email.value = 'admin@smartcampus.com';
+    pass.value = 'Definitely-Wrong-1';
+    doc.getElementById('loginForm').dispatchEvent(
+      new doc.defaultView.Event('submit', { bubbles: true, cancelable: true }));
+    const alerted = await waitFor(() => {
+      const box = doc.getElementById('loginAlert');
+      return box && box.classList.contains('show') &&
+             doc.getElementById('loginAlertText').textContent.trim().length > 0;
+    }, 8000);
+    check('wrong password shows the real server error', Boolean(alerted),
+      alerted ? doc.getElementById('loginAlertText').textContent.trim() : 'no alert');
+    check('still on the login page after a failed login',
+      !/index\.html/.test(frame.contentWindow.location.pathname));
+
+    /* 6. good credentials -> the real redirect to the dashboard */
+    email.value = 'admin@smartcampus.com';
+    pass.value = 'Admin@123';
+    doc.getElementById('loginForm').dispatchEvent(
+      new doc.defaultView.Event('submit', { bubbles: true, cancelable: true }));
+    const landed = await waitFor(
+      () => /index\.html/.test(frame.contentWindow.location.pathname), 10000, 200);
+    check('successful login redirects to the dashboard', Boolean(landed),
+      frame.contentWindow.location.pathname);
+    if (!landed) return;
+
+    const up = await waitFor(() => dashboardReady(grab()), 10000, 200);
+    check('dashboard rendered with its module cards', Boolean(up));
+    if (!up) return;
+    await dashboardRun('after login');
+  }
+
+  /* --------------------------------------------------------- dashboard run */
+  async function dashboardRun(phase) {
+    const doc = grab();
+    if (!doc || !doc.getElementById('themeStyleBtn')) {
+      check(phase + ' : theme menu present', false);
+      return;
+    }
+    watchErrors(doc);
+
+    const tiles = doc.querySelectorAll('.module-card[data-module]').length;
+    check(phase + ' : 3D module cards still render', tiles > 0, tiles + ' tiles');
+
+    const before = doc.documentElement.style.getPropertyValue('--theme-accent').trim();
+    doc.getElementById('themeStyleBtn').click();
+    await sleep(80);
+
+    const swatch = doc.querySelector('[data-color="#22C55E"]');
+    check(phase + ' : circular swatch exists', Boolean(swatch));
+    if (!swatch) return;
+    check(phase + ' : swatch is a round CSS button, not an emoji',
+      swatch.tagName === 'BUTTON' && swatch.textContent.trim() === '');
+    check(phase + ' : 11 colour swatches + custom',
+      doc.querySelectorAll('.palette [data-color]').length === 11 &&
+      Boolean(doc.querySelector('.palette [data-custom-color]')));
+
+    swatch.click();
+    await sleep(150);
+
+    const accent = doc.documentElement.style.getPropertyValue('--theme-accent').trim();
+    check(phase + ' : clicking Green applies the colour',
+      accent.toUpperCase() === '#22C55E', 'accent=' + accent + ' (was ' + before + ')');
+    check(phase + ' : primary buttons follow the chosen colour',
+      doc.documentElement.style.getPropertyValue('--sc-primary').trim().toUpperCase() === '#22C55E');
+    check(phase + ' : swatch marked as checked',
+      swatch.getAttribute('aria-checked') === 'true');
+    check(phase + ' : label reads "Selected: Green"',
+      /Selected:\s*Green/.test(doc.getElementById('paletteReadout').textContent),
+      doc.getElementById('paletteReadout').textContent.trim());
+    check(phase + ' : module identity kept for active states',
+      doc.documentElement.style.getPropertyValue('--theme-module').trim().length > 0);
+
+    /* persistence: reload the dashboard and look again */
+    const url = 'index.html?again=' + Date.now();
+    frame.src = url;
+    const reloaded = await waitFor(() => dashboardReady(grab()), 12000, 200);
+    check(phase + ' : dashboard reloads after the colour change', Boolean(reloaded));
+    if (!reloaded) return;
+
+    const doc2 = grab();
+    const restored = doc2.documentElement.style.getPropertyValue('--theme-accent').trim();
+    check('colour persists across a reload', restored.toUpperCase() === '#22C55E',
+      'accent=' + restored);
+    const store = doc2.defaultView.localStorage;
+    const keys = Object.keys(store);
+    check('stored preference is sc.theme.color',
+      store.getItem('sc.theme.color') === '#22C55E');
+    /* this feature may only ever add sc.theme.* - the session keys are the
+       app's own pre-existing design and no password may ever appear */
+    const appKeys = ['smartcampus.token', 'smartcampus.user', 'smartcampus.permissions'];
+    const stray = keys.filter((k) => !appKeys.includes(k) && !k.startsWith('sc.theme.'));
+    const leaked = keys.filter((k) => /Admin@123|Faculty@123|Student@123|password/i
+      .test(String(store.getItem(k) || '')));
+    check('the colour feature only stores sc.theme.*', stray.length === 0,
+      keys.join(', ') || 'no keys');
+    check('no password is kept in localStorage', leaked.length === 0,
+      leaked.join(', ') || 'clean');
+
+    doc2.getElementById('themeStyleBtn').click();
+    await sleep(80);
+    const again = doc2.querySelector('[data-color="#22C55E"]');
+    check('restored swatch is the checked one', again && again.getAttribute('aria-checked') === 'true');
+    check('restored label reads "Selected: Green"',
+      /Selected:\s*Green/.test(doc2.getElementById('paletteReadout').textContent));
+
+    check('no JavaScript exception anywhere', pageErrors.length === 0,
+      pageErrors.join(' | ') || 'clean');
+    out.textContent = results.join('\n') + '\nDONE';
+  }
+
+  (async function run() {
+    try {
+      if (step === 'dashboard') {
+        /* open the dashboard directly (session from a previous run in the
+           same profile is fine - requireAuth() decides) */
+        frame.src = 'index.html';
+        await waitFor(() => dashboardReady(grab()), 12000, 200);
+        await dashboardRun('dashboard');
+      } else {
+        await loginRun();
+      }
+    } catch (e) {
+      check('harness completed', false, (e && e.message) || String(e));
+    }
+    out.textContent = results.join('\n') + '\nDONE';
+  })();
+})();
+</script>
+</body>
+</html>

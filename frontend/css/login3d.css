@@ -1,0 +1,277 @@
+/* ============================================================================
+ * login3d.css - a real CSS 3D scene for the login page
+ * ----------------------------------------------------------------------------
+ * Everything here is generated with 3D transforms: there is no image file and
+ * no extra library. Each building is one box built from three faces:
+ *
+ *      .c3-b::before  roof          horizontal plane, w x d
+ *      .c3-b::after   left wall     stood upright on the -Y edge, w x h
+ *      .c3-b > i      right wall    stood upright on the +X edge, d x h
+ *
+ * Inside .c3-iso the local axes are X right, Y into the scene and Z up, which
+ * is why the roof needs no rotation at all and the two walls need a 90 degree
+ * turn. The set is then tipped by `rotateX(58deg) rotateZ(-45deg)` to give the
+ * isometric view, and the pointer tilts it a few more degrees for depth.
+ *
+ * Loaded by login.html only - no other page is affected.
+ * ========================================================================== */
+
+/* ------------------------------------------------------------ the wrapper */
+.auth-aside > .campus3d {
+  position: absolute;
+  right: -6%;
+  bottom: -2%;
+  width: 92%;
+  height: 62%;
+  z-index: 0;
+  pointer-events: none;
+  perspective: 1150px;
+  perspective-origin: 50% 42%;
+  overflow: hidden;
+}
+
+/* the group that actually turns with the mouse */
+.c3-tilt {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform .45s cubic-bezier(.22, 1, .36, 1);
+}
+
+/* the isometric world - a 0x0 origin every block is measured from */
+.c3-iso {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(58deg) rotateZ(-45deg);
+  animation: c3-bob 9s ease-in-out infinite;
+}
+
+@keyframes c3-bob {
+  0%, 100% { transform: rotateX(58deg) rotateZ(-45deg) translateZ(0); }
+  50%      { transform: rotateX(58.8deg) rotateZ(-45deg) translateZ(14px); }
+}
+
+/* ---------------------------------------------------------------- ground */
+.c3-ground {
+  position: absolute;
+  left: -280px;
+  top: -225px;
+  width: 560px;
+  height: 450px;
+  transform: translateZ(0);
+  background:
+    radial-gradient(120% 120% at 50% 40%, rgba(47, 111, 237, .30) 0%, rgba(15, 23, 42, .05) 62%),
+    repeating-linear-gradient(90deg, rgba(148, 197, 253, .16) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(0deg,  rgba(148, 197, 253, .16) 0 1px, transparent 1px 40px),
+    linear-gradient(160deg, rgba(30, 58, 138, .55), rgba(15, 23, 42, .18));
+  border: 1px solid rgba(96, 165, 250, .35);
+  box-shadow: 0 0 90px rgba(37, 99, 235, .35) inset;
+}
+.c3-ground::after {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  border: 1px dashed rgba(147, 197, 253, .28);
+}
+
+/* a soft glowing plinth so the campus does not float in a void */
+.c3-aura {
+  position: absolute;
+  left: -150px;
+  top: -120px;
+  width: 300px;
+  height: 240px;
+  transform: translateZ(-1px);
+  background: radial-gradient(closest-side, rgba(56, 189, 248, .45), transparent 70%);
+  filter: blur(14px);
+}
+
+/* ------------------------------------------------------------------ boxes */
+/*  --x/--y  centre of the block on the ground
+    --z      height the block starts at
+    --w/--d  width / depth of the footprint
+    --h      height of the block
+    --tint   hue of this building                                    */
+/* Inside .c3-iso the local frame is X right, Y into the scene, Z up, so a
+   face needs NO rotation to lie flat (that is the roof) and a 90 degree turn
+   to stand upright (those are the two walls the camera sees). The block is
+   lifted by h/2 so its walls span z .. z+h rather than centring on z. */
+.c3-b {
+  position: absolute;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  transform: translate3d(var(--x), var(--y), calc(var(--z) + var(--h) / 2));
+}
+
+/* roof - horizontal plane resting on top of the block, w x d */
+.c3-b::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--w) / -2);
+  top: calc(var(--d) / -2);
+  width: var(--w);
+  height: var(--d);
+  transform: translateZ(calc(var(--h) / 2));
+  background: linear-gradient(140deg, hsl(var(--tint) 68% 56%), hsl(var(--tint) 55% 31%));
+  box-shadow: inset 0 0 18px rgba(255, 255, 255, .16);
+}
+
+/* left wall - stood upright on the -Y edge, w x h, with lit windows */
+.c3-b::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--w) / -2);
+  top: calc(var(--h) / -2);
+  width: var(--w);
+  height: var(--h);
+  transform: rotateX(90deg) translateZ(calc(var(--d) / 2));
+  background-color: hsl(var(--tint) 46% 31%);
+  background-image:
+    repeating-linear-gradient(to right,  hsl(var(--tint) 92% 76% / .7) 0 5px, transparent 5px 15px),
+    repeating-linear-gradient(to bottom, hsl(var(--tint) 92% 76% / .7) 0 5px, transparent 5px 15px);
+  box-shadow: inset 0 0 22px hsl(var(--tint) 80% 60% / .3);
+}
+
+/* right wall - stood upright on the +X edge, d x h */
+.c3-b > i {
+  position: absolute;
+  left: calc(var(--d) / -2);
+  top: calc(var(--h) / -2);
+  width: var(--d);
+  height: var(--h);
+  transform: rotateY(90deg) translateZ(calc(var(--w) / 2));
+  background-color: hsl(var(--tint) 48% 20%);
+  background-image:
+    repeating-linear-gradient(to right,  hsl(var(--tint) 90% 70% / .5) 0 5px, transparent 5px 15px),
+    repeating-linear-gradient(to bottom, hsl(var(--tint) 90% 70% / .5) 0 5px, transparent 5px 15px);
+}
+
+/* lamp heads glow instead of showing windows */
+.c3-b.c3-lit::before,
+.c3-b.c3-lit::after,
+.c3-b.c3-lit > i {
+  background-image: none;
+  background: radial-gradient(circle at 40% 35%, #fef3c7, #fbbf24 60%, #b45309);
+  box-shadow: 0 0 18px 7px rgba(251, 191, 36, .55);
+  animation: c3-pulse 2.8s ease-in-out infinite;
+}
+@keyframes c3-pulse {
+  0%, 100% { filter: brightness(.85); }
+  50%      { filter: brightness(1.15); }
+}
+
+/* ----------------------------------------------------------- lamp posts */
+/* Each lamp is a thin block - the same three faces as a building - topped by
+   a small glowing head (.c3-lit). They really stand up out of the ground. */
+
+/* --------------------------------------------------------- orbiting ring */
+/* A flat halo hovering over the campus; it spins inside its own plane. */
+.c3-ring {
+  position: absolute;
+  left: -205px;
+  top: -205px;
+  width: 410px;
+  height: 410px;
+  border-radius: 50%;
+  border: 1px solid rgba(125, 211, 252, .38);
+  transform: translateZ(150px);
+  animation: c3-spin 26s linear infinite;
+}
+.c3-ring::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: #7dd3fc;
+  box-shadow: 0 0 18px 6px rgba(125, 211, 252, .7);
+}
+@keyframes c3-spin {
+  from { transform: translateZ(150px) rotateZ(0deg); }
+  to   { transform: translateZ(150px) rotateZ(360deg); }
+}
+
+/* ------------------------------------------------- holographic UI panels */
+/* these live in screen space (outside .c3-iso) so they read as glass cards
+   hovering in front of the campus                                      */
+.c3-hud {
+  position: absolute;
+  z-index: 3;
+  padding: .5rem .7rem;
+  border-radius: 12px;
+  border: 1px solid rgba(186, 230, 253, .35);
+  background: linear-gradient(140deg, rgba(255, 255, 255, .17), rgba(255, 255, 255, .05));
+  backdrop-filter: blur(6px);
+  color: #eaf4ff;
+  font-size: .68rem;
+  font-weight: 600;
+  line-height: 1.25;
+  box-shadow: 0 14px 30px rgba(2, 6, 23, .45);
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  animation: c3-float 7s ease-in-out infinite;
+}
+.c3-hud i { font-size: 1.05rem; color: #7dd3fc; }
+.c3-hud small { display: block; font-size: .58rem; opacity: .7; font-weight: 500; }
+
+.c3-hud.a { left: 4%;  top: 16%; animation-delay: -1s; }
+.c3-hud.b { right: 8%; top: 6%;  animation-delay: -3.2s; }
+.c3-hud.c { right: 3%; bottom: 22%; animation-delay: -5.1s; }
+
+@keyframes c3-float {
+  0%, 100% { transform: translateY(-7px); }
+  50%      { transform: translateY(7px); }
+}
+
+/* ------------------------------------------------------- entrance polish */
+.auth-aside > .campus3d { animation: c3-rise 1.1s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes c3-rise {
+  from { opacity: 0; transform: translateY(34px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* keep the existing copy readable on top of the scene */
+.auth-aside > .auth-brand,
+.auth-aside > .auth-headline,
+.auth-aside > .auth-foot { z-index: 2; }
+
+/* ------------------------------------------------------- accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .c3-iso, .c3-ring, .c3-lit::before, .c3-lit::after, .c3-lit > i, .c3-hud, .campus3d {
+    animation: none !important;
+  }
+  .c3-tilt { transition: none; }
+}
+
+/* the brand panel disappears below 992px (existing rule in responsive.css),
+   so on phones a light 3D ambience is drawn behind the form instead      */
+@media (max-width: 991.98px) {
+  .auth-panel { position: relative; }
+  .auth-panel::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -6%;
+    width: 340px;
+    height: 340px;
+    transform: translateX(-50%) rotateX(64deg) rotateZ(-45deg) translateZ(0);
+    background:
+      repeating-linear-gradient(90deg, rgba(47, 111, 237, .13) 0 1px, transparent 1px 26px),
+      repeating-linear-gradient(0deg,  rgba(47, 111, 237, .13) 0 1px, transparent 1px 26px),
+      radial-gradient(closest-side, rgba(47, 111, 237, .30), transparent 72%);
+    border: 1px solid rgba(96, 165, 250, .25);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .auth-card { position: relative; z-index: 1; }
+}

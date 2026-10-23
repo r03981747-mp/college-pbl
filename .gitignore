@@ -1,0 +1,26 @@
+# ---------------------------------------------------------------- backend
+backend/target/
+backend/exports/*.csv
+backend/logs/*.log
+*.class
+*.jar
+!maven-wrapper.jar
+
+# ---------------------------------------------------------------- frontend
+frontend/_uitest.html
+node_modules/
+.vscode/settings.json
+
+# ---------------------------------------------------------------- database
+*.sql.gz
+
+# ---------------------------------------------------------------- tooling
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+__pycache__/
+*.log
+
+# ---------------------------------------------------------------- test output
+tests/out/

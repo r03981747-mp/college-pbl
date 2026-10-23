@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activities · Smart Campus</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/responsive.css" rel="stylesheet">
+<link href="css/theme.css" rel="stylesheet">
+<script src="js/theme.js" defer></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="overlay" id="sidebarOverlay"></div>
+
+  <div class="main-area">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="content">
+      <!-- ============================================== PAGE HEADER -->
+      <div class="page-header">
+        <div>
+          <h1>Activities</h1>
+          <p>Plan, publish and track every campus event — seminars, workshops,
+             cultural nights and tournaments. Each action writes to the database.</p>
+        </div>
+        <div class="page-actions">
+          <span class="chip"><i class="bi bi-shield-check text-success"></i>
+            Role: <strong data-user-role>—</strong></span>
+          <a href="reports.html" class="btn btn-outline-secondary btn-sm" id="reportsLinkBtn">
+            <i class="bi bi-bar-chart me-1"></i>Reports
+          </a>
+        </div>
+      </div>
+
+      <!-- ============================================== UPCOMING EVENTS -->
+      <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-body pb-2">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h2 class="h6 mb-0"><i class="bi bi-calendar-event me-1 text-primary"></i>Upcoming events</h2>
+            <span class="small text-secondary">Next four events, soonest first</span>
+          </div>
+          <div id="upcomingMount">
+            <div class="empty-inline">Loading upcoming events…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== DATE FILTER -->
+      <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-body py-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-auto">
+              <label class="form-label small text-secondary mb-1" for="fromDate">Starts from</label>
+              <input type="date" class="form-control form-control-sm" id="fromDate">
+            </div>
+            <div class="col-auto">
+              <label class="form-label small text-secondary mb-1" for="toDate">Starts until</label>
+              <input type="date" class="form-control form-control-sm" id="toDate">
+            </div>
+            <div class="col-auto">
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="clearDates">
+                <i class="bi bi-x-lg me-1"></i>Clear dates
+              </button>
+            </div>
+            <div class="col-auto ms-auto small text-secondary d-none d-md-block">
+              Filters the register on the activity start date.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== DATA TABLE -->
+      <div id="tableMount">
+        <div class="card"><div class="card-body">
+          <div class="empty-inline">Loading activities…</div>
+        </div></div>
+      </div>
+    </main>
+
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+</div>
+
+<!-- ====================================================== VIEW MODAL -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="d-flex align-items-center gap-2">
+          <span class="avatar-circle" id="viewInitials">—</span>
+          <div>
+            <h6 class="modal-title mb-0" id="viewName">Activity</h6>
+            <small class="text-secondary" id="viewMeta"></small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="viewBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light btn-sm border" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary btn-sm" id="viewEditBtn">
+          <i class="bi bi-pencil-square me-1"></i>Edit
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== FORM MODAL -->
+<div class="modal fade" id="formModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="activityForm" novalidate>
+        <div class="modal-header">
+          <h6 class="modal-title" id="formTitle">Add activity</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label" for="activityName">Activity name *</label>
+              <input class="form-control" id="activityName" name="activityName"
+                     maxlength="150" placeholder="Robotics workshop 2026" required>
+              <div class="invalid-feedback">Activity name is required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="category">Category *</label>
+              <select class="form-select" id="category" name="category" required>
+                <option value="TECHNICAL">Technical</option>
+                <option value="CULTURAL">Cultural</option>
+                <option value="SPORTS">Sports</option>
+                <option value="WORKSHOP">Workshop</option>
+                <option value="SEMINAR">Seminar</option>
+                <option value="CLUB_ACTIVITY">Club activity</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="organizer">Organizer *</label>
+              <input class="form-control" id="organizer" name="organizer"
+                     maxlength="120" placeholder="Robotics club" required>
+              <div class="invalid-feedback">Organizer is required.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="venue">Venue *</label>
+              <input class="form-control" id="venue" name="venue"
+                     maxlength="120" placeholder="Main auditorium" required>
+              <div class="invalid-feedback">Venue is required.</div>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label" for="startDate">Start date *</label>
+              <input type="date" class="form-control" id="startDate" name="startDate" required>
+              <div class="invalid-feedback">Start date is required.</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="endDate">End date *</label>
+              <input type="date" class="form-control" id="endDate" name="endDate" required>
+              <div class="invalid-feedback">End date cannot be before the start date.</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="startTime">Start time *</label>
+              <input type="time" class="form-control" id="startTime" name="startTime" required>
+              <div class="invalid-feedback">Start time is required.</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="endTime">End time *</label>
+              <input type="time" class="form-control" id="endTime" name="endTime" required>
+              <div class="invalid-feedback">End time must be after the start time.</div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label" for="maxParticipants">Maximum participants *</label>
+              <input type="number" min="1" max="100000" class="form-control"
+                     id="maxParticipants" name="maxParticipants" value="50" required>
+              <div class="invalid-feedback">Enter a value between 1 and 100000.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="status">Status</label>
+              <select class="form-select" id="status" name="status">
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="ONGOING">Ongoing</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label" for="description">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="2"
+                        maxlength="1000" placeholder="What is it about? Who should attend?"></textarea>
+            </div>
+          </div>
+
+          <div class="info-banner mt-3">
+            <i class="bi bi-info-circle"></i>
+            <div>The server enforces the same rules: the end date cannot precede the start date,
+              the end time must be after the start time and the capacity must be between
+              1 and 100000.</div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light btn-sm border" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="saveBtn">
+            <i class="bi bi-check2 me-1"></i><span id="saveLabel">Save activity</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/activities.js"></script>
+</body>
+</html>

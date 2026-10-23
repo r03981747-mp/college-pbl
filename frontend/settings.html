@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings · Smart Campus</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/responsive.css" rel="stylesheet">
+<link href="css/theme.css" rel="stylesheet">
+<script src="js/theme.js" defer></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="overlay" id="sidebarOverlay"></div>
+
+  <div class="main-area">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="content">
+      <!-- ============================================== PAGE HEADER -->
+      <div class="page-header">
+        <div>
+          <h1>Settings</h1>
+          <p>Manage your own sign-in, review the live session reported by the server
+             and check what this browser session is allowed to do.</p>
+        </div>
+        <div class="page-actions">
+          <span class="chip"><i class="bi bi-shield-check text-success"></i>
+            Role: <strong data-user-role>—</strong></span>
+          <a href="index.html" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-grid-1x2 me-1"></i>Dashboard
+          </a>
+        </div>
+      </div>
+
+      <div class="row g-3">
+
+        <!-- =========================================== CHANGE PASSWORD -->
+        <div class="col-12 col-xl-6">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="setting-block">
+                <h6><i class="bi bi-key me-1 text-primary"></i>Change password</h6>
+                <div class="hint">
+                  The current password is re-verified by the server, the new one is
+                  re-hashed with BCrypt and every other session of this account is closed.
+                </div>
+
+                <form id="passwordForm" novalidate>
+                  <div class="mb-3">
+                    <label class="form-label" for="currentPassword">Current password</label>
+                    <input type="password" class="form-control" id="currentPassword"
+                           name="currentPassword" autocomplete="current-password" required>
+                    <div class="invalid-feedback">Your current password is required.</div>
+                  </div>
+
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label class="form-label" for="newPassword">New password</label>
+                      <input type="password" class="form-control" id="newPassword"
+                             name="newPassword" minlength="6" autocomplete="new-password" required>
+                      <div class="invalid-feedback">Use at least 6 characters.</div>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label" for="confirmPassword">Confirm new password</label>
+                      <input type="password" class="form-control" id="confirmPassword"
+                             name="confirmPassword" minlength="6" autocomplete="new-password" required>
+                      <div class="invalid-feedback">Both new passwords must match.</div>
+                    </div>
+                  </div>
+
+                  <div class="warning-banner mt-3">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <div>You will be signed out on every device as soon as the password
+                      changes, so sign in again with the new password straight away.</div>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary btn-sm mt-3" id="changePasswordBtn">
+                    <i class="bi bi-shield-check me-1"></i>Change password
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================== MY ACCOUNT -->
+        <div class="col-12 col-xl-6">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="setting-block">
+                <h6><i class="bi bi-person-circle me-1 text-primary"></i>My account</h6>
+                <div class="hint">
+                  Read-only summary returned by <code>GET /api/auth/me</code>.
+                </div>
+                <div id="accountMount">
+                  <div class="empty-inline">Loading your account…</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- =============================================== SESSION -->
+        <div class="col-12 col-xl-6">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="setting-block">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6><i class="bi bi-hdd-network me-1 text-primary"></i>Session</h6>
+                    <div class="hint">
+                      Live answer of <code>GET /api/auth/status</code> for the token
+                      stored in this browser.
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-outline-primary btn-sm"
+                          id="sessionRefresh" title="Ask the server again">
+                    <i class="bi bi-arrow-clockwise"></i>
+                  </button>
+                </div>
+
+                <div id="sessionMount">
+                  <div class="empty-inline">Checking the session…</div>
+                </div>
+
+                <button type="button" class="btn btn-outline-danger btn-sm mt-3" id="signOutBtn">
+                  <i class="bi bi-box-arrow-right me-1"></i>Sign out now
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================= SYSTEM INFORMATION -->
+        <div class="col-12 col-xl-6">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="setting-block">
+                <h6><i class="bi bi-info-square me-1 text-primary"></i>System information</h6>
+                <div class="hint">
+                  Facts taken from this page and from the session cached at sign-in.
+                </div>
+
+                <div id="systemMount">
+                  <div class="empty-inline">Loading system information…</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/settings.js"></script>
+</body>
+</html>

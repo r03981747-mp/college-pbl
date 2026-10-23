@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UI test harness</title>
+</head>
+<body>
+<pre id="log">booting...</pre>
+<script>
+/* TEMPORARY test-only page: performs a REAL login through the normal API and
+   then hands over to the target page with a genuine session. Deleted after the
+   UI test run. */
+const params = new URLSearchParams(location.search);
+const who = params.get('as') || 'admin';
+const next = params.get('next') || '/index.html';
+
+const ACCOUNTS = {
+  admin:   { email: 'admin@smartcampus.com',   password: 'Admin@123' },
+  faculty: { email: 'faculty@smartcampus.com', password: 'Faculty@123' },
+  student: { email: 'student@smartcampus.com', password: 'Student@123' }
+};
+
+(async function () {
+  const acct = ACCOUNTS[who];
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ email: acct.email, password: acct.password, rememberMe: true })
+    });
+    const body = await res.json();
+    if (!res.ok || !body.success) throw new Error(body.message || ('HTTP ' + res.status));
+
+    localStorage.setItem('smartcampus.token', body.data.token);
+    localStorage.setItem('smartcampus.user', JSON.stringify(body.data.user));
+    localStorage.setItem('smartcampus.permissions', JSON.stringify(body.data.permissions || []));
+    document.getElementById('log').textContent = 'logged in as ' + body.data.user.role + ' -> ' + next;
+    location.replace(next);
+  } catch (e) {
+    document.getElementById('log').textContent = 'HARNESS FAILED: ' + e.message;
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1163 @@
+/* ============================================================================
+ * theme.css - premium 3D dashboard, module accent themes, background styles
+ * ----------------------------------------------------------------------------
+ * LOAD ORDER: style.css -> dashboard.css -> responsive.css -> theme.css
+ *
+ * The system is built on CSS custom properties only.  Components already read
+ * --sc-* variables, so restyling the whole app is a matter of re-pointing
+ * those variables - no component rule is rewritten twice.
+ *
+ *   html[data-style="..."]          background style picked by the user
+ *                                   default | light | dark | blue | green | purple
+ *   html[data-module-theme="..."]   accent of the module that was last opened
+ *   .theme-wash                     fixed, full-page tint layer (injected by
+ *                                   js/theme.js) - it is what animates when a
+ *                                   module card is clicked
+ *
+ * Module colours themselves live in ONE place: the MODULE_THEMES table in
+ * js/theme.js.  theme.js writes --theme-* onto <html> and --accent-* onto each
+ * card, so there is no duplicated per-card colour CSS anywhere.
+ * ========================================================================== */
+
+/* ------------------------------------------------------------ 1. TOKENS */
+:root {
+  /* shared accent (rewritten by theme.js: the picked colour, or the module's) */
+  --theme-primary: #2faeed;
+  --theme-accent: #2f6fed;
+  --theme-accent-rgb: 47, 111, 237;
+  --theme-soft: #e8f0ff;
+  --theme-tint: #dbe6ff;
+  --theme-shadow: rgba(47, 111, 237, .3);
+  --theme-wash-strength: 0;
+  /* legible foregrounds for that accent (theme.js picks white vs ink) */
+  --theme-on-accent: #ffffff;
+  --theme-accent-text: #2f6fed;
+
+  /* module identity - never overridden by the circular colour picker, so
+     active/selected states always still say WHICH module they belong to */
+  --theme-module: #2f6fed;
+  --theme-module-rgb: 47, 111, 237;
+  --theme-module-tint: #dbe6ff;
+
+  /* background style (rewritten by html[data-style]) */
+  --theme-background: #f4f6fb;
+  --theme-card: #ffffff;
+  --theme-border: #e6e9f2;
+  --theme-sheen: rgba(255, 255, 255, .78);
+  --theme-wash-boost: 1;
+
+  /* 3D motion budget - every effect in this file reads these */
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --lift: 0px;
+  --sheen-x: 50%;
+  --sheen-y: 6%;
+  --ease-3d: cubic-bezier(.22, .61, .36, 1);
+
+  /* layered, "physical" shadows: contact + mid air + cast */
+  --depth-rest:
+    0 1px 2px rgba(15, 23, 42, .05),
+    0 10px 22px -12px rgba(15, 23, 42, .16),
+    0 26px 46px -28px rgba(15, 23, 42, .22);
+  --depth-hover:
+    0 2px 4px rgba(15, 23, 42, .06),
+    0 18px 36px -14px rgba(15, 23, 42, .2),
+    0 44px 64px -30px var(--theme-shadow);
+}
+
+/* ------------------------------------------------- 2. BACKGROUND STYLES */
+html[data-style="default"] {
+  --theme-background: #f4f6fb;
+  --theme-card: #ffffff;
+  --theme-border: #e6e9f2;
+}
+
+/* a cleaner, brighter canvas than the default */
+html[data-style="light"] {
+  --theme-background: #f8fafc;
+  --theme-card: #ffffff;
+  --theme-border: #e9edf6;
+  --theme-sheen: rgba(255, 255, 255, .95);
+  --sc-bg: #f8fafc;
+  --sc-surface: #ffffff;
+  --sc-border: #e9edf6;
+}
+
+/* tinted canvases - the module accent still layers on top of these */
+html[data-style="blue"] {
+  --theme-background: #eef4ff;
+  --theme-card: #fbfcff;
+  --theme-border: #dde7fb;
+  --theme-sheen: rgba(255, 255, 255, .85);
+  --sc-bg: #eef4ff;
+  --sc-surface: #fbfcff;
+  --sc-border: #dde7fb;
+}
+
+html[data-style="green"] {
+  --theme-background: #edfaf3;
+  --theme-card: #fbfffd;
+  --theme-border: #d8f0e4;
+  --theme-sheen: rgba(255, 255, 255, .85);
+  --sc-bg: #edfaf3;
+  --sc-surface: #fbfffd;
+  --sc-border: #d8f0e4;
+}
+
+html[data-style="purple"] {
+  --theme-background: #f5f2ff;
+  --theme-card: #fdfcff;
+  --theme-border: #e6e0fb;
+  --theme-sheen: rgba(255, 255, 255, .85);
+  --sc-bg: #f5f2ff;
+  --sc-surface: #fdfcff;
+  --sc-border: #e6e0fb;
+}
+
+/* --------------------------------------------------------------- DARK */
+/* also flips Bootstrap's own tokens through data-bs-theme (set by theme.js) */
+html[data-style="dark"] {
+  --theme-background: #0b1220;
+  --theme-card: #131c2e;
+  --theme-border: #26324a;
+  --theme-sheen: rgba(56, 189, 248, .1);
+  --theme-wash-boost: 1.55;
+
+  --sc-bg: #0b1220;
+  --sc-surface: #131c2e;
+  --sc-border: #26324a;
+  --sc-text: #e6edf9;
+  --sc-text-muted: #93a2bb;
+  --sc-primary-soft: rgba(47, 111, 237, .22);
+  --sc-shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+  --sc-shadow: 0 8px 26px rgba(0, 0, 0, .38);
+  --sc-shadow-lg: 0 22px 50px rgba(0, 0, 0, .52);
+  --depth-rest:
+    0 1px 2px rgba(0, 0, 0, .45),
+    0 12px 24px -12px rgba(0, 0, 0, .6),
+    0 30px 50px -30px rgba(0, 0, 0, .8);
+  --depth-hover:
+    0 2px 4px rgba(0, 0, 0, .5),
+    0 20px 38px -14px rgba(0, 0, 0, .7),
+    0 46px 66px -30px var(--theme-shadow);
+}
+
+/* ------------------------------------------------- 3. PAGE CANVAS + WASH */
+body {
+  background-color: var(--theme-background);
+  background-image:
+    radial-gradient(1100px 620px at 3% -14%, var(--theme-sheen), transparent 60%),
+    radial-gradient(940px 560px at 104% 4%, var(--theme-sheen), transparent 56%);
+  transition: background-color .55s var(--ease-3d);
+}
+
+/* fixed tint layer - the module's own colour, it cross-fades when a module
+   is picked (the global colour picker never repaints the page wash) */
+.theme-wash {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: rgb(var(--theme-module-rgb));
+  opacity: calc(var(--theme-wash-strength) * var(--theme-wash-boost));
+  transition: background-color .55s var(--ease-3d), opacity .55s var(--ease-3d);
+}
+
+/* module accents follow the sidebar pill and the top bar rule.
+   The pill marks the OPEN MODULE, so it keeps the module colour even when a
+   global colour is chosen (the top bar rule below is shared furniture). */
+html[data-module-theme]:not([data-module-theme="default"]) .nav-link.active {
+  background: var(--theme-module);
+  color: var(--theme-on-accent);
+  box-shadow: 0 8px 18px rgba(var(--theme-module-rgb), .38);
+}
+html[data-module-theme]:not([data-module-theme="default"]) .topbar {
+  box-shadow: inset 0 -2px 0 rgba(var(--theme-accent-rgb), .5);
+  transition: box-shadow .5s var(--ease-3d), background-color .3s ease;
+}
+html[data-module-theme]:not([data-module-theme="default"]) .sidebar-brand .brand-mark {
+  background: linear-gradient(135deg, rgba(var(--theme-accent-rgb), .95), var(--theme-accent));
+  box-shadow: 0 8px 18px rgba(var(--theme-accent-rgb), .45);
+}
+/* neutral chips pick up a pastel of the open module (dark mode keeps its own) */
+html[data-module-theme]:not([data-module-theme="default"]):not([data-style="dark"]) .module-head-tools .chip,
+html[data-module-theme]:not([data-module-theme="default"]):not([data-style="dark"]) .page-actions .chip {
+  background: var(--theme-module-tint);
+}
+
+/* --------------------------------------------- 4. 3D SQUARE MODULE CARD */
+.module-card {
+  /* depth without any layout shift: transforms only */
+  transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y))
+             translateY(var(--lift));
+  transform-origin: 50% 50%;
+  background: var(--theme-card);
+  border-color: var(--theme-border);
+  box-shadow: var(--depth-rest), inset 0 1px 0 rgba(255, 255, 255, .85);
+  transition:
+    transform .4s var(--ease-3d),
+    box-shadow .4s var(--ease-3d),
+    border-color .3s ease,
+    background-color .35s ease;
+}
+
+.module-card:hover,
+.module-card:focus-visible {
+  --lift: -9px;
+  border-color: var(--accent, var(--theme-accent));
+  background: var(--theme-card);
+  box-shadow: var(--depth-hover), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+/* soft specular light that follows the pointer across the tile */
+.module-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    280px circle at var(--sheen-x) var(--sheen-y),
+    rgba(255, 255, 255, .78) 0%,
+    rgba(255, 255, 255, .12) 42%,
+    rgba(255, 255, 255, 0) 68%);
+  opacity: 0;
+  transition: opacity .35s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+.module-card:hover::before,
+.module-card:focus-visible::before { opacity: .9; }
+
+/* keep the tile content above the light */
+.module-card .module-icon,
+.module-card .module-body,
+.module-card .module-open { position: relative; z-index: 2; }
+
+/* the icon gently floats once the tile is picked up */
+.module-card:hover .module-icon,
+.module-card:focus-visible .module-icon {
+  animation: sc-icon-float 3.2s ease-in-out .25s infinite;
+}
+@keyframes sc-icon-float {
+  0%, 100% { transform: translateY(-4px) scale(1.07); }
+  50%      { transform: translateY(-9px) scale(1.07); }
+}
+
+.module-card:hover .module-glow,
+.module-card:focus-visible .module-glow { opacity: 1; transform: translateY(-8%); }
+
+/* keyboard users get the same lift + a solid, non-colour-only outline */
+.module-card:focus-visible {
+  outline: 2px solid var(--accent, var(--theme-accent));
+  outline-offset: 3px;
+}
+
+/* pressed feedback: the tile pushes back into the screen */
+.module-card:active {
+  --lift: 0px;
+  transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y))
+             translateY(1px) scale(.985);
+  transition-duration: .1s;
+}
+
+/* ------------------------------------------------- 5. ACTIVE MODULE TILE */
+.module-card.is-active {
+  border-color: var(--accent, var(--theme-accent));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .62) 0%, rgba(255, 255, 255, 0) 46%),
+    var(--accent-soft, var(--theme-soft));
+  box-shadow:
+    0 0 0 1px var(--accent, var(--theme-accent)),
+    0 2px 4px rgba(15, 23, 42, .06),
+    0 20px 36px -18px var(--theme-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+.module-card.is-active:hover,
+.module-card.is-active:focus-visible {
+  border-color: var(--accent, var(--theme-accent));
+}
+
+/* a check badge - the selection is never signalled by colour alone */
+.module-active-mark {
+  position: absolute;
+  top: .6rem;
+  right: .6rem;
+  z-index: 3;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: .92rem;
+  line-height: 1;
+  color: #fff;
+  background: var(--accent, var(--theme-accent));
+  box-shadow: 0 6px 14px rgba(var(--accent-rgb, 47, 111, 237), .45);
+  opacity: 0;
+  transform: scale(.4);
+  transition: opacity .25s ease, transform .3s var(--ease-3d);
+  pointer-events: none;
+}
+.module-card.is-active .module-active-mark { opacity: 1; transform: scale(1); }
+
+/* accent map used by module tiles, stat cards and report cards.
+   (style.css keeps the original light values for pages without theme.css) */
+.accent-blue     { --accent: #2f6fed; --accent-rgb: 47, 111, 237;   --accent-soft: #e8f0ff; }
+.accent-green    { --accent: #16a34a; --accent-rgb: 22, 163, 74;    --accent-soft: #e7f8ee; }
+.accent-orange   { --accent: #d97706; --accent-rgb: 217, 119, 6;    --accent-soft: #fdf1e2; }
+.accent-red      { --accent: #dc2626; --accent-rgb: 220, 38, 38;    --accent-soft: #fdeaea; }
+.accent-cyan     { --accent: #0891b2; --accent-rgb: 8, 145, 178;    --accent-soft: #e4f7fb; }
+.accent-purple   { --accent: #7c3aed; --accent-rgb: 124, 58, 237;   --accent-soft: #f1eafe; }
+.accent-indigo   { --accent: #4f46e5; --accent-rgb: 79, 70, 229;    --accent-soft: #eceefe; }
+.accent-teal     { --accent: #0d9488; --accent-rgb: 13, 148, 136;   --accent-soft: #e4f7f4; }
+.accent-pink     { --accent: #db2777; --accent-rgb: 219, 39, 119;   --accent-soft: #fdeaf4; }
+.accent-violet   { --accent: #8b5cf6; --accent-rgb: 139, 92, 246;   --accent-soft: #f1ecff; }
+.accent-amber    { --accent: #f59e0b; --accent-rgb: 245, 158, 11;   --accent-soft: #fef3e2; }
+.accent-bluegray { --accent: #475569; --accent-rgb: 71, 85, 105;    --accent-soft: #eef1f7; }
+.accent-slate    { --accent: #64748b; --accent-rgb: 100, 116, 139;  --accent-soft: #f1f5f9; }
+
+/* ------------------------------------------------------- 6. STAT + UI DEPTH */
+.stat-card {
+  background: var(--theme-card);
+  border-color: var(--theme-border);
+  box-shadow: var(--depth-rest);
+  transition: transform .3s var(--ease-3d), box-shadow .3s var(--ease-3d),
+              background-color .35s ease, border-color .3s ease;
+}
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--depth-hover);
+  border-color: var(--accent, var(--theme-accent));
+}
+
+.card {
+  background: var(--theme-card);
+  border-color: var(--theme-border);
+  transition: background-color .4s var(--ease-3d), border-color .4s var(--ease-3d),
+              box-shadow .3s var(--ease-3d);
+}
+
+/* ------------------------------------------------------ 7. GREETING HERO */
+/* a shallow tilt + layered light so the banner reads as a solid slab */
+.greeting-hero {
+  transform: perspective(1200px) rotateX(1.4deg);
+  transform-origin: 50% 100%;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .16),
+    0 2px 6px rgba(15, 23, 42, .12),
+    0 24px 46px -26px rgba(15, 23, 42, .55),
+    0 52px 76px -52px rgba(var(--theme-accent-rgb), .75);
+  transition: transform .55s var(--ease-3d), box-shadow .55s var(--ease-3d);
+}
+.greeting-hero:hover {
+  transform: perspective(1200px) rotateX(0deg) translateY(-3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .2),
+    0 6px 14px rgba(15, 23, 42, .16),
+    0 34px 58px -28px rgba(15, 23, 42, .55),
+    0 62px 90px -54px rgba(var(--theme-accent-rgb), .85);
+}
+
+/* the avatar picks up the open module's colour without changing shape */
+.greeting-avatar {
+  background: linear-gradient(135deg, #38bdf8, var(--theme-primary));
+  transition: background .5s var(--ease-3d);
+}
+
+/* one gentle entrance, run once when the greeting is first painted */
+.greeting-hero.is-ready { animation: sc-hero-in .7s var(--ease-3d) .2s backwards; }
+@keyframes sc-hero-in {
+  from { opacity: 0; transform: perspective(1200px) translateY(16px) rotateX(6deg); }
+  to   { opacity: 1; transform: perspective(1200px) translateY(0) rotateX(1.4deg); }
+}
+
+/* ------------------------------------------------- 8. BACKGROUND SELECTOR */
+.theme-tools { position: relative; }
+
+.theme-tools-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  height: 34px;
+  padding: 0 .7rem;
+  border: 1px solid var(--sc-border);
+  border-radius: 10px;
+  background: var(--theme-card);
+  color: var(--sc-text-muted);
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.theme-tools-btn:hover {
+  color: var(--theme-accent-text);
+  border-color: var(--theme-accent);
+  box-shadow: 0 6px 16px -8px var(--theme-shadow);
+}
+.theme-tools-btn:focus-visible {
+  outline: 2px solid var(--theme-accent-text);
+  outline-offset: 2px;
+}
+.theme-tools-btn .theme-caret { font-size: .68rem; opacity: .7; }
+.theme-tools-btn[data-open="true"] .theme-caret { transform: rotate(180deg); }
+
+.theme-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + .5rem);
+  min-width: 236px;
+  max-height: calc(100vh - 7rem);           /* never taller than the screen */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: .4rem;
+  display: grid;
+  gap: .15rem;
+  background: var(--theme-card);            /* fallback without color-mix() */
+  background: color-mix(in srgb, var(--theme-card) 86%, transparent);
+  border: 1px solid var(--sc-border);
+  border-radius: 14px;
+  box-shadow: var(--sc-shadow-lg);
+  backdrop-filter: blur(12px);
+  z-index: 1080;
+}
+.theme-menu[hidden] { display: none; }
+
+/* when the button sits low on the screen the dropdown opens upward instead
+   of running off the bottom (js/theme.js adds .is-up while opening) */
+@media (min-width: 576px) {
+  .theme-menu.is-up { top: auto; bottom: calc(100% + .5rem); }
+}
+
+.theme-menu-label {
+  padding: .3rem .55rem .25rem;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--sc-text-muted);
+}
+
+.theme-opt {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  width: 100%;
+  padding: .45rem .55rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--sc-text);
+  font-size: .8rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, color .16s ease;
+}
+.theme-opt:hover { background: var(--sc-primary-soft); }
+.theme-opt:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 1px; }
+.theme-opt .swatch {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  border-radius: 5px;
+  border: 1px solid rgba(15, 23, 42, .16);
+}
+.theme-opt .tick { margin-left: auto; opacity: 0; transform: scale(.6); transition: .18s ease; }
+.theme-opt[aria-checked="true"] {
+  background: var(--theme-soft);
+  border-color: var(--theme-accent);
+  color: var(--theme-accent-text);
+}
+.theme-opt[aria-checked="true"] .tick { opacity: 1; transform: scale(1); }
+
+.theme-menu-divider { height: 1px; margin: .3rem .2rem; background: var(--sc-border); }
+.theme-opt.is-reset { color: var(--sc-text-muted); font-weight: 600; }
+
+/* ------------------------------------------- 8b. CIRCULAR COLOUR PICKER */
+/* real CSS circles (never emoji): each swatch is a radio-style button with
+   a ring + check mark, so the choice never depends on colour alone.       */
+.palette {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: .5rem;
+  padding: .35rem .55rem .2rem;
+}
+
+.color-swatch {
+  position: relative;
+  width: 100%;
+  min-width: 24px;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid rgba(15, 23, 42, .2);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, .6), transparent 55%),
+    var(--sw, #ccc);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform .18s var(--ease-3d), box-shadow .18s ease;
+}
+.color-swatch:hover { transform: translateY(-2px) scale(1.09); }
+.color-swatch:focus-visible { outline: 2px solid var(--theme-accent-text); outline-offset: 2px; }
+.color-swatch:active { transform: translateY(0) scale(.97); }
+
+.color-swatch i {
+  font-size: .86rem;
+  line-height: 1;
+  color: var(--sw-ink, #0f172a);
+  opacity: 0;
+  transform: scale(.5);
+  transition: opacity .16s ease, transform .2s var(--ease-3d);
+}
+/* active swatch: solid ring + visible check (also announced via aria-checked) */
+.color-swatch[aria-checked="true"] {
+  box-shadow:
+    0 0 0 2px var(--theme-card),
+    0 0 0 4px var(--theme-accent-text),
+    0 6px 14px -6px rgba(15, 23, 42, .5);
+}
+.color-swatch[aria-checked="true"] i { opacity: 1; transform: scale(1); }
+
+/* the "+" swatch opens the browser's native colour input */
+.color-swatch.is-custom {
+  background: var(--theme-card);
+  border: 1.5px dashed var(--sc-border);
+  color: var(--sc-text-muted);
+}
+.color-swatch.is-custom i { opacity: 1; transform: none; font-size: .95rem; color: inherit; }
+.color-swatch.is-custom:hover { color: var(--theme-accent-text); border-color: var(--theme-accent); }
+.color-swatch.is-custom[aria-checked="true"] {
+  background: var(--sw);
+  border-style: solid;
+  border-color: transparent;
+}
+
+/* kept out of the grid flow, only opened programmatically */
+.color-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  padding: 0;
+  border: 0;
+  pointer-events: none;
+}
+
+.palette-readout {
+  margin: .1rem .55rem .35rem;
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--sc-text-muted);
+}
+.palette-readout strong { color: var(--theme-accent-text); font-weight: 700; }
+
+/* ------------------------------------------------- 9. DARK MODE ADJUSTMENTS */
+html[data-style="dark"] .topbar { background: rgba(11, 18, 32, .88); }
+html[data-style="dark"] .topbar .menu-toggle,
+html[data-style="dark"] .topbar-user,
+html[data-style="dark"] .icon-btn { background: var(--theme-card); color: var(--sc-text); }
+html[data-style="dark"] .topbar .crumbs .crumb-back { background: #16223a; }
+html[data-style="dark"] .search-box input,
+html[data-style="dark"] .module-search input { background: #0f1829; color: var(--sc-text); }
+html[data-style="dark"] .search-box input:focus,
+html[data-style="dark"] .module-search input:focus { background: #0f1829; }
+
+html[data-style="dark"] .chip,
+html[data-style="dark"] .module-head-tools .chip {
+  background: #16223a;
+  color: var(--sc-text-muted);
+}
+html[data-style="dark"] .card-header { background: var(--theme-card); }
+html[data-style="dark"] .table thead th { background: #101a2c !important; color: #9db0cc; }
+html[data-style="dark"] .table tbody tr:hover > * { background: #17233c !important; }
+
+html[data-style="dark"] .form-control,
+html[data-style="dark"] .form-select {
+  background-color: #0f1829;
+  border-color: #2a3752;
+  color: var(--sc-text);
+}
+html[data-style="dark"] .form-control:focus,
+html[data-style="dark"] .form-select:focus { background-color: #0f1829; }
+html[data-style="dark"] .form-label { color: #9fb0cb; }
+html[data-style="dark"] .input-group-text { background: #101a2c; border-color: #2a3752; }
+
+html[data-style="dark"] .btn-light,
+html[data-style="dark"] .btn-outline-secondary { background: #1a2439; border-color: #2a3752; color: #c7d3e6; }
+html[data-style="dark"] .btn-light:hover,
+html[data-style="dark"] .btn-outline-secondary:hover { background: #222e48; border-color: #38496b; color: #eef3fb; }
+
+html[data-style="dark"] .modal-content { background: var(--theme-card); color: var(--sc-text); }
+html[data-style="dark"] .modal-header { background: linear-gradient(135deg, #14203a, #101a2e); }
+html[data-style="dark"] .modal-footer { background: #101a2c; }
+
+html[data-style="dark"] .event-date { background: #13203a; border-color: #26334e; }
+html[data-style="dark"] .quick-tile,
+html[data-style="dark"] .report-card,
+html[data-style="dark"] .thread-result { background: var(--theme-card); border-color: var(--theme-border); }
+html[data-style="dark"] .thread-result.ok { background: #0f2a1d; border-color: #1d4b34; }
+html[data-style="dark"] .thread-result.bad { background: #2c1416; border-color: #59272b; }
+html[data-style="dark"] .info-banner { background: #0f1c33; border-color: #1f3557; color: #bcd3f5; }
+html[data-style="dark"] .warning-banner { background: #2a1f0d; border-color: #4a3712; color: #f0cf9a; }
+html[data-style="dark"] .mini-progress { background: #1b2740; }
+html[data-style="dark"] .demo-accounts { background: #101a2c; }
+html[data-style="dark"] .greeting-hero { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14),
+    0 24px 46px -26px rgba(0, 0, 0, .8), 0 52px 76px -52px rgba(var(--theme-accent-rgb), .7); }
+
+/* accent tiles stay readable on dark surfaces */
+html[data-style="dark"] .module-icon,
+html[data-style="dark"] .module-metric,
+html[data-style="dark"] .stat-card .stat-icon {
+  background: rgba(var(--accent-rgb, 47, 111, 237), .18);
+}
+/* the corner blob keeps the module colour instead of going chalky on dark */
+html[data-style="dark"] .stat-card::after {
+  background: rgba(var(--accent-rgb, 47, 111, 237), .14);
+  opacity: 1;
+}
+html[data-style="dark"] .module-glow { opacity: .3; }
+html[data-style="dark"] .module-card:hover .module-glow,
+html[data-style="dark"] .module-card:focus-visible .module-glow { opacity: .55; }
+html[data-style="dark"] .module-card::before {
+  background: radial-gradient(280px circle at var(--sheen-x) var(--sheen-y),
+    rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, 0) 66%);
+}
+html[data-style="dark"] .module-card,
+html[data-style="dark"] .stat-card { box-shadow: var(--depth-rest), inset 0 1px 0 rgba(255, 255, 255, .06); }
+html[data-style="dark"] .module-card.is-active {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .07) 0%, rgba(255, 255, 255, 0) 46%),
+              rgba(var(--accent-rgb, 47, 111, 237), .16);
+}
+html[data-style="dark"] .theme-opt .swatch,
+html[data-style="dark"] .color-swatch { border-color: rgba(255, 255, 255, .28); }
+html[data-style="dark"] .color-swatch.is-custom { background: var(--theme-card); }
+html[data-style="dark"] .color-swatch[aria-checked="true"] {
+  box-shadow:
+    0 0 0 2px var(--theme-card),
+    0 0 0 4px var(--theme-accent-text),
+    0 6px 14px -6px rgba(0, 0, 0, .6);
+}
+
+/* ------------------------------------------------ 10. RESPONSIVE + MOTION */
+@media print {
+  /* a tinted canvas never belongs on paper - keep exports clean */
+  .theme-wash { display: none !important; }
+  body { background: #fff !important; background-image: none !important; }
+}
+
+@media (max-width: 575.98px) {
+  .theme-menu { position: fixed; left: .75rem; right: .75rem; top: auto; min-width: 0; }
+  .greeting-hero { transform: none; }
+  .greeting-hero:hover { transform: translateY(-2px); }
+  .module-active-mark { width: 22px; height: 22px; font-size: .78rem; top: .45rem; right: .45rem; }
+}
+
+/* motion is optional: everything still works, it simply stops moving */
+@media (prefers-reduced-motion: reduce) {
+  .module-card,
+  .module-card:hover,
+  .module-card:focus-visible,
+  .module-card:active,
+  .greeting-hero,
+  .greeting-hero:hover {
+    transform: none !important;
+  }
+  .module-card,
+  .module-glow,
+  .module-icon,
+  .module-open,
+  .module-active-mark,
+  .stat-card,
+  .theme-wash,
+  body {
+    transition-duration: .16s !important;
+  }
+  .module-card:hover .module-icon,
+  .module-card:focus-visible .module-icon,
+  .greeting-emoji,
+  .greeting-hero.is-ready {
+    animation: none !important;
+  }
+  .color-swatch,
+  .color-swatch i {
+    transition-duration: .12s !important;
+  }
+  .color-swatch:hover,
+  .color-swatch:active {
+    transform: none !important;
+  }
+}
+
+/* ============================================ 11. FLOATING COLOUR PICKER */
+/* The dashboard menu is the full-size picker; every other page (login
+   included) gets the same circular palette in a compact floating panel. */
+.theme-fab {
+  position: fixed;
+  right: 1rem;                       /* fallback for browsers without env() */
+  bottom: 1rem;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 1029;                     /* below topbar, modals and the mobile overlay */
+  display: flex;
+  flex-direction: column-reverse;   /* panel opens upward from the button */
+  align-items: flex-end;
+  gap: .6rem;
+  font-family: var(--sc-font);
+}
+
+.theme-fab-btn {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid var(--theme-border);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--theme-card);     /* fallback where color-mix is absent */
+  background: color-mix(in srgb, var(--theme-card) 84%, transparent);
+  color: var(--theme-accent-text);
+  font-size: 1.12rem;
+  cursor: pointer;
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, .08),
+    0 14px 30px -12px rgba(15, 23, 42, .38);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: transform .2s var(--ease-3d), background-color .25s ease,
+              color .25s ease, box-shadow .25s ease;
+}
+.theme-fab-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--theme-accent);
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, .08),
+    0 18px 36px -12px var(--theme-shadow);
+}
+.theme-fab-btn:focus-visible {
+  outline: 2px solid var(--theme-accent-text);
+  outline-offset: 3px;
+}
+.theme-fab-btn.is-open {
+  background: var(--theme-accent);
+  border-color: var(--theme-accent);
+  color: var(--theme-on-accent);
+}
+
+.theme-fab-panel {
+  width: min(292px, calc(100vw - 2rem));
+  padding: .65rem .7rem .7rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 18px;
+  background: var(--theme-card);
+  background: color-mix(in srgb, var(--theme-card) 97%, transparent);
+  box-shadow: var(--sc-shadow-lg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: theme-fab-in .22s var(--ease-3d) both;
+}
+.theme-fab-panel[hidden] { display: none; }
+
+@keyframes theme-fab-in {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.theme-fab-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  padding: .1rem .15rem .45rem;
+}
+.theme-fab-head > span {
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--sc-text);
+  opacity: .72;
+}
+.theme-fab-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--sc-text-muted);
+  cursor: pointer;
+}
+.theme-fab-close:hover { background: var(--theme-soft); color: var(--theme-accent-text); }
+.theme-fab-close:focus-visible { outline: 2px solid var(--theme-accent-text); outline-offset: 2px; }
+
+.theme-fab .palette {
+  grid-template-columns: repeat(6, 1fr);
+  gap: .55rem;
+  padding: .45rem .15rem .35rem;
+}
+.theme-fab .palette-readout { margin: .1rem .15rem .45rem; }
+
+.theme-fab-reset {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .5rem .6rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--sc-text-muted);
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.theme-fab-reset:hover { background: var(--theme-soft); color: var(--theme-accent-text); }
+.theme-fab-reset:focus-visible { outline: 2px solid var(--theme-accent-text); outline-offset: 1px; }
+
+/* ============================================ 12. THEME ON THE LOGIN ROOM */
+/* The same stored accent now reaches login.html: the canvas, the dark brand
+   wall and the primary button all follow the chosen colour. */
+.auth-page {
+  background:
+    radial-gradient(1100px 520px at 12% -8%, rgba(var(--theme-accent-rgb), .20) 0%, transparent 60%),
+    radial-gradient(900px 520px at 108% 12%, var(--theme-soft) 0%, transparent 55%),
+    var(--theme-background);
+  transition: background-color .55s var(--ease-3d);
+}
+
+.auth-aside {
+  background:
+    radial-gradient(760px 360px at 12% -4%, rgba(var(--theme-accent-rgb), .34), transparent 64%),
+    linear-gradient(150deg, #0f172a 0%, #1b2c52 55%, var(--theme-accent) 150%);
+  transition: background-color .55s var(--ease-3d);
+}
+
+.auth-brand .brand-mark {
+  background: linear-gradient(135deg, rgba(var(--theme-accent-rgb), .78), var(--theme-accent));
+  box-shadow: 0 10px 26px rgba(var(--theme-accent-rgb), .48);
+}
+
+/* keeps white / yellow accents legible on primary buttons */
+.auth-card .btn-primary,
+.auth-card .btn-primary:hover,
+.demo-row button:hover {
+  color: var(--theme-on-accent);
+}
+
+html[data-style="dark"] .auth-page[data-light="on"] .auth-card {
+  background: linear-gradient(160deg, rgba(19, 28, 46, .97), rgba(19, 28, 46, .9));
+  border-color: rgba(255, 255, 255, .12);
+  color: var(--sc-text);
+}
+html[data-style="dark"] .auth-page[data-light="on"] .auth-card .sub,
+html[data-style="dark"] .auth-page[data-light="on"] .auth-card .small,
+html[data-style="dark"] .auth-page[data-light="on"] .auth-card .text-secondary {
+  color: var(--sc-text-muted) !important;
+}
+
+/* ============================================ 13. SIGN-OUT DIALOG + EXIT */
+.signout-dialog {
+  width: min(432px, calc(100vw - 1.5rem));
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sc-text);
+  overflow: visible;
+}
+.signout-dialog::backdrop {
+  background: rgba(4, 8, 16, .64);
+  backdrop-filter: blur(8px) saturate(.82);
+  -webkit-backdrop-filter: blur(8px) saturate(.82);
+}
+
+.signout-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(1.25rem, 3.2vw, 1.8rem);
+  border: 1px solid var(--theme-border);
+  border-radius: 24px;
+  background:
+    radial-gradient(420px 220px at 50% -18%, rgba(251, 191, 36, .18), transparent 66%),
+    var(--theme-card);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .7),
+    0 2px 6px rgba(15, 23, 42, .12),
+    0 30px 70px -30px rgba(2, 6, 23, .8),
+    0 0 0 1px rgba(15, 23, 42, .06);
+  transform: perspective(1000px) rotateX(1.4deg);
+  transition: transform .5s var(--ease-3d), opacity .5s ease;
+}
+
+.signout-close {
+  position: absolute;
+  top: .8rem;
+  right: .8rem;
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--sc-text-muted);
+  cursor: pointer;
+}
+.signout-close:hover { background: var(--theme-soft); color: var(--theme-accent-text); }
+.signout-close:focus-visible { outline: 2px solid var(--theme-accent-text); outline-offset: 2px; }
+
+.signout-bulb-stage {
+  position: relative;
+  width: 78px;
+  height: 80px;
+  margin: .2rem auto .85rem;
+}
+.signout-cord {
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  width: 2px;
+  height: 34px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #6b7789, #d3dbe8 45%, #6b7789);
+}
+.signout-cord::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #fdf0cd, #cba962 62%, #8d7038);
+  box-shadow: 0 3px 7px rgba(0, 0, 0, .35);
+}
+.signout-bulb-glow {
+  position: absolute;
+  inset: -22px -18px -10px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(251, 191, 36, .42), transparent 72%);
+  animation: signout-breathe 3.2s ease-in-out infinite;
+  transition: opacity .45s ease;
+}
+.signout-bulb {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  width: 48px;
+  height: 52px;
+  margin-left: -24px;
+  border-radius: 42% 42% 50% 50% / 34% 34% 66% 66%;
+  background: radial-gradient(circle at 34% 28%, #fffdf6, #ffeda0 42%, #fcd34d 74%, #efa62d);
+  box-shadow:
+    0 0 26px 8px rgba(251, 191, 36, .55),
+    0 0 78px 26px rgba(251, 191, 36, .2),
+    inset 0 0 14px rgba(255, 255, 255, .55);
+  transition: background .4s ease, box-shadow .4s ease;
+}
+.signout-bulb::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 19px;
+  height: 10px;
+  margin-left: -9.5px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #aeb9cb, #7f8ba0);
+}
+.signout-bulb::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 15px;
+  height: 12px;
+  margin: -6px 0 0 -7.5px;
+  border: 2px solid rgba(255, 246, 207, .9);
+  border-bottom: 0;
+  border-radius: 7px 7px 2px 2px;
+  box-shadow: 0 0 10px 3px rgba(251, 191, 36, .7);
+}
+
+@keyframes signout-breathe {
+  0%, 100% { opacity: .75; transform: scale(.96); }
+  50%      { opacity: 1; transform: scale(1.04); }
+}
+
+.signout-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .38rem;
+  padding: .22rem .62rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 20px;
+  background: var(--theme-soft);
+  color: var(--theme-accent-text);
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.signout-dialog h2 {
+  margin: .8rem 0 .4rem;
+  font-size: clamp(1.2rem, 2.6vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+.signout-dialog p {
+  margin: 0;
+  color: var(--sc-text-muted);
+  font-size: .86rem;
+  line-height: 1.55;
+}
+.signout-dialog p strong { color: var(--sc-text); }
+
+.signout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .55rem;
+  margin-top: 1.2rem;
+}
+.signout-actions .btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+}
+.signout-stay {
+  border: 1px solid var(--theme-border);
+  background: var(--theme-card);
+  color: var(--sc-text);
+}
+.signout-stay:hover,
+.signout-stay:focus {
+  border-color: var(--theme-accent);
+  background: var(--theme-soft);
+  color: var(--theme-accent-text);
+}
+.signout-confirm {
+  border: 1px solid #b91c1c;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #fff;
+  box-shadow: 0 10px 24px -10px rgba(185, 28, 28, .7);
+}
+.signout-confirm:hover,
+.signout-confirm:focus {
+  background: linear-gradient(135deg, #f05252, #991b1b);
+  border-color: #991b1b;
+  color: #fff;
+}
+.signout-stay:focus-visible,
+.signout-confirm:focus-visible {
+  outline: 2px solid var(--theme-accent-text);
+  outline-offset: 3px;
+}
+.signout-stay:disabled,
+.signout-confirm:disabled { opacity: .55; cursor: progress; }
+
+.signout-note {
+  margin-top: .85rem !important;
+  font-size: .72rem !important;
+  text-align: center;
+}
+
+/* the page dims and the dialog folds away, both before the server logout call */
+html.is-signing-out .app-shell {
+  filter: brightness(.42) saturate(.55);
+  transition: filter .7s var(--ease-3d);
+}
+html.is-signing-out::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+  background:
+    radial-gradient(620px 420px at 50% 32%, rgba(251, 191, 36, .10), transparent 64%),
+    rgba(4, 8, 16, .8);
+  opacity: 0;
+  animation: signout-room-dark .72s ease .04s forwards;
+}
+@keyframes signout-room-dark {
+  to { opacity: 1; }
+}
+
+.signout-dialog.is-firing .signout-card {
+  opacity: 0;
+  transform: perspective(1000px) rotateX(22deg) translateY(28px) scale(.94);
+}
+.signout-dialog.is-firing .signout-bulb {
+  background: radial-gradient(circle at 34% 28%, #eef2f8, #b9c4d5 46%, #7c879b 78%, #5b6478);
+  box-shadow: 0 0 12px rgba(251, 191, 36, .1), inset -7px -9px 16px rgba(15, 23, 42, .38);
+}
+.signout-dialog.is-firing .signout-bulb::after {
+  border-color: rgba(88, 101, 128, .55);
+  box-shadow: none;
+}
+.signout-dialog.is-firing .signout-bulb-glow { opacity: 0; }
+
+html[data-style="dark"] .signout-card {
+  background:
+    radial-gradient(420px 220px at 50% -18%, rgba(251, 191, 36, .16), transparent 66%),
+    var(--theme-card);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    0 2px 6px rgba(0, 0, 0, .5),
+    0 30px 70px -30px rgba(0, 0, 0, .9);
+}
+html[data-style="dark"] .signout-stay {
+  background: #101a2c;
+  border-color: #2a3752;
+  color: var(--sc-text);
+}
+
+/* ---------------------------------------------------------- small screens */
+@media (max-width: 575.98px) {
+  .theme-fab { right: .8rem; bottom: .8rem; }
+  .theme-fab-panel { width: calc(100vw - 1.6rem); }
+  .signout-dialog { width: calc(100vw - 1rem); }
+  .signout-actions { flex-direction: column; }   /* safe action first on phones */
+  .signout-actions .btn { width: 100%; }
+}
+
+/* motion is optional: the switch-off is immediate, but never skipped */
+@media (prefers-reduced-motion: reduce) {
+  .theme-fab-panel,
+  .signout-bulb-glow {
+    animation: none !important;
+  }
+  .theme-fab-btn,
+  .signout-card,
+  .signout-bulb,
+  .signout-bulb-glow,
+  .signout-bulb::after,
+  .app-shell {
+    transition-duration: .12s !important;
+  }
+  .signout-dialog.is-firing .signout-card {
+    transform: none;
+    opacity: 0;
+  }
+  html.is-signing-out::after {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+@media print {
+  .theme-fab,
+  .signout-dialog { display: none !important; }
+}

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laboratories · Smart Campus</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/responsive.css" rel="stylesheet">
+<link href="css/theme.css" rel="stylesheet">
+<script src="js/theme.js" defer></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="overlay" id="sidebarOverlay"></div>
+
+  <div class="main-area">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="content">
+      <!-- ============================================== PAGE HEADER -->
+      <div class="page-header">
+        <div>
+          <h1>Laboratories</h1>
+          <p>Search, filter, sort and maintain every laboratory, and ask the API
+             whether a lab is free in a given time slot.
+             Every action below performs a real database operation.</p>
+        </div>
+        <div class="page-actions">
+          <span class="chip"><i class="bi bi-shield-check text-success"></i>
+            Role: <strong data-user-role>—</strong></span>
+          <a href="reports.html" class="btn btn-outline-secondary btn-sm" id="reportsLinkBtn">
+            <i class="bi bi-bar-chart me-1"></i>Reports
+          </a>
+        </div>
+      </div>
+
+      <!-- ============================================== DATA TABLE -->
+      <div id="tableMount">
+        <div class="card"><div class="card-body">
+          <div class="empty-inline">Loading laboratories…</div>
+        </div></div>
+      </div>
+    </main>
+
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+</div>
+
+<!-- ====================================================== VIEW MODAL -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="d-flex align-items-center gap-2">
+          <span class="avatar-circle" id="viewInitials">—</span>
+          <div>
+            <h6 class="modal-title mb-0" id="viewTitle">Laboratory</h6>
+            <small class="text-secondary" id="viewSubtitle"></small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="viewBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light btn-sm border" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary btn-sm" id="viewEditBtn">
+          <i class="bi bi-pencil-square me-1"></i>Edit
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== FORM MODAL -->
+<div class="modal fade" id="formModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="laboratoryForm" novalidate>
+        <div class="modal-header">
+          <h6 class="modal-title" id="formTitle">Add laboratory</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label" for="labNumber">Lab number *</label>
+              <input class="form-control" id="labNumber" name="labNumber"
+                     placeholder="LAB-02" maxlength="20" required
+                     data-msg="Lab number is required (20 characters maximum).">
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label" for="labName">Lab name *</label>
+              <input class="form-control" id="labName" name="labName"
+                     placeholder="Database Lab" maxlength="120" required
+                     data-msg="Lab name is required (120 characters maximum).">
+              <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label" for="building">Building *</label>
+              <input class="form-control" id="building" name="building"
+                     placeholder="Science Block" maxlength="60" required
+                     data-msg="Building is required (60 characters maximum).">
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="department">Department *</label>
+              <input class="form-control" id="department" name="department" list="departmentOptions"
+                     placeholder="Computer Science" maxlength="60" required
+                     data-msg="Department is required (60 characters maximum).">
+              <datalist id="departmentOptions"></datalist>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="labType">Lab type *</label>
+              <input class="form-control" id="labType" name="labType" list="labTypeOptions"
+                     placeholder="Programming" maxlength="40" required
+                     data-msg="Lab type is required (40 characters maximum).">
+              <datalist id="labTypeOptions"></datalist>
+              <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label" for="capacity">Capacity *</label>
+              <input type="number" class="form-control" id="capacity" name="capacity"
+                     min="1" placeholder="30" required
+                     data-msg="Capacity must be at least 1.">
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="equipmentCount">Equipment count *</label>
+              <input type="number" class="form-control" id="equipmentCount" name="equipmentCount"
+                     min="0" value="0" required
+                     data-msg="Equipment count must be 0 or more (and at most 4 × capacity).">
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="status">Status</label>
+              <select class="form-select" id="status" name="status">
+                <option value="ACTIVE">Active</option>
+                <option value="MAINTENANCE">Under Maintenance</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label" for="description">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="2"
+                        maxlength="500" placeholder="What this laboratory is used for…"></textarea>
+              <div class="invalid-feedback"></div>
+            </div>
+          </div>
+
+          <div class="info-banner mt-3" id="formHint">
+            <i class="bi bi-info-circle"></i>
+            <div>The record is validated on the <strong>server</strong>: the lab number is
+              upper-cased and checked for duplicates, capacity must be at least 1 and the
+              equipment count may not exceed four times the capacity.</div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light btn-sm border" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="saveBtn">
+            <i class="bi bi-check2 me-1"></i><span id="saveLabel">Save laboratory</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =============================================== AVAILABILITY MODAL -->
+<div class="modal fade" id="availabilityModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="availabilityForm" novalidate>
+        <div class="modal-header">
+          <div>
+            <h6 class="modal-title" id="availabilityTitle">Check availability</h6>
+            <small class="text-secondary" id="availabilitySubtitle"></small>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label" for="availabilityDate">Date *</label>
+              <input type="date" class="form-control" id="availabilityDate" name="date"
+                     required data-msg="Choose the date you want to check.">
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="availabilityStart">Start time *</label>
+              <input type="time" class="form-control" id="availabilityStart" name="startTime"
+                     required data-msg="Choose a start time.">
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="availabilityEnd">End time *</label>
+              <input type="time" class="form-control" id="availabilityEnd" name="endTime"
+                     required data-msg="Choose an end time.">
+              <div class="invalid-feedback"></div>
+            </div>
+          </div>
+
+          <div id="availabilityResult" class="mt-3"></div>
+
+          <div class="info-banner mt-3">
+            <i class="bi bi-info-circle"></i>
+            <div>The slot is checked against the live bookings table. The answer and the
+              message come verbatim from <code>POST /api/laboratories/{id}/availability</code>.</div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light btn-sm border" data-bs-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="availabilityBtn">
+            <i class="bi bi-calendar2-check me-1"></i><span id="availabilityBtnLabel">Check availability</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/laboratories.js"></script>
+</body>
+</html>

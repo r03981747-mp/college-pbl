@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Users · Smart Campus</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/responsive.css" rel="stylesheet">
+<link href="css/theme.css" rel="stylesheet">
+<script src="js/theme.js" defer></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="overlay" id="sidebarOverlay"></div>
+
+  <div class="main-area">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="content">
+      <!-- ============================================== PAGE HEADER -->
+      <div class="page-header">
+        <div>
+          <h1>Users</h1>
+          <p>Login accounts for the Smart Campus portal. Create, edit, disable and
+             delete accounts — every action is a real database operation.</p>
+        </div>
+        <div class="page-actions">
+          <span class="chip"><i class="bi bi-shield-check text-success"></i>
+            Role: <strong data-user-role>—</strong></span>
+          <a href="settings.html" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-gear me-1"></i>Settings
+          </a>
+        </div>
+      </div>
+
+      <!-- ========================================== NO ACCESS PANEL -->
+      <div id="accessDenied" class="d-none">
+        <div class="card">
+          <div class="card-body">
+            <div class="text-center py-5 px-3">
+              <div class="display-6 text-warning opacity-50 mb-2">
+                <i class="bi bi-shield-lock"></i>
+              </div>
+              <div class="fw-semibold text-secondary">You do not have access to this page</div>
+              <div class="small text-muted mt-1">
+                Account management is restricted to administrators
+                (<code>users.read</code> / <code>users.write</code>).
+              </div>
+              <a href="index.html" class="btn btn-outline-primary btn-sm mt-3">
+                <i class="bi bi-grid-1x2 me-1"></i>Back to dashboard
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== DATA TABLE -->
+      <div id="tableMount" class="d-none">
+        <div class="card"><div class="card-body">
+          <div class="empty-inline">Loading accounts…</div>
+        </div></div>
+      </div>
+    </main>
+
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+</div>
+
+<!-- ======================================================== FORM MODAL -->
+<div class="modal fade" id="formModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="userForm" novalidate>
+        <div class="modal-header">
+          <h6 class="modal-title" id="formTitle">Add account</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="username">Username *</label>
+              <input class="form-control" id="username" name="username"
+                     placeholder="rahul.gowda" minlength="3" maxlength="80" required>
+              <div class="invalid-feedback">Username is required.</div>
+              <div class="form-text">Letters, digits, dot, underscore and hyphen only.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="fullName">Full name *</label>
+              <input class="form-control" id="fullName" name="fullName"
+                     placeholder="Rahul Gowda" maxlength="120" required>
+              <div class="invalid-feedback">Full name is required.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="email">Email *</label>
+              <input type="email" class="form-control" id="email" name="email"
+                     placeholder="name@smartcampus.com" required>
+              <div class="invalid-feedback">A valid email address is required.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="password">Password *</label>
+              <input type="password" class="form-control" id="password" name="password"
+                     placeholder="At least 6 characters" minlength="6" autocomplete="new-password">
+              <div class="invalid-feedback">Password must be at least 6 characters.</div>
+              <div class="form-text" id="passwordHint">Required when creating an account.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="role">Role *</label>
+              <select class="form-select" id="role" name="role" required>
+                <option value="">Select role</option>
+                <option value="ADMIN">Administrator</option>
+                <option value="FACULTY">Faculty</option>
+                <option value="STUDENT">Student</option>
+              </select>
+              <div class="invalid-feedback">Please choose a role.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="status">Account status</label>
+              <select class="form-select" id="status" name="status">
+                <option value="ACTIVE">Active — can sign in</option>
+                <option value="INACTIVE">Inactive — sign-in blocked</option>
+              </select>
+              <div class="form-text">Disabling an account also closes its open sessions.</div>
+            </div>
+          </div>
+
+          <div class="warning-banner mt-3">
+            <i class="bi bi-shield-lock"></i>
+            <div>
+              <strong>Passwords are never displayed.</strong>
+              The value you type here is hashed with BCrypt on the server before it is
+              stored, and <code>GET /api/users</code> has no password field at all —
+              no hash or plain-text password can ever reach this browser.
+            </div>
+          </div>
+
+          <div class="info-banner mt-3">
+            <i class="bi bi-info-circle"></i>
+            <div>Usernames and emails must be unique; the database rejects duplicates
+              with a unique index as well as a server-side check.</div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light btn-sm border" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="saveBtn">
+            <i class="bi bi-check2 me-1"></i><span id="saveLabel">Save account</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/users.js"></script>
+</body>
+</html>

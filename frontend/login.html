@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in · Smart Campus Integrated Management System</title>
+
+<!-- Bootstrap 5 + Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<link href="css/responsive.css" rel="stylesheet">
+<link href="css/login3d.css" rel="stylesheet">
+<link href="css/lightcord.css" rel="stylesheet">
+<link href="css/theme.css" rel="stylesheet">
+<script src="js/theme.js" defer></script>
+<noscript>
+  <!-- without JavaScript the cord cannot be pulled, so show the form
+       straight away - authentication itself never depends on this scene -->
+  <style>
+    .room-veil, .room-glow, .light-rig, .light-hint { display: none !important; }
+    .auth-card { opacity: 1 !important; visibility: visible !important;
+                 transform: none !important; pointer-events: auto !important; }
+    .auth-panel { padding-top: 2.5rem !important; align-items: center !important; }
+  </style>
+</noscript>
+</head>
+<body>
+
+<div class="auth-page" id="authPage" data-light="off">
+
+  <!-- ==================================================== LIGHT THE ROOM -->
+  <!-- decorative switch: pulling the cord only shows/hides the login card.
+       It never authenticates anything - js/login.js still does that. -->
+  <div class="room-veil" aria-hidden="true"></div>
+  <div class="room-glow" aria-hidden="true"></div>
+
+  <div class="light-rig" id="lightRig">
+    <div class="light-swing">
+      <span class="light-cap" aria-hidden="true"></span>
+      <span class="light-rod" aria-hidden="true"></span>
+      <span class="light-socket" aria-hidden="true"></span>
+      <span class="light-bulb" aria-hidden="true"><span class="light-filament"></span></span>
+
+      <button type="button" class="light-pull" id="lightHandle"
+              aria-pressed="false" aria-expanded="false"
+              aria-controls="loginForm" aria-label="Turn the light on"
+              aria-describedby="lightHint">
+        <span class="light-cord" aria-hidden="true"></span>
+        <span class="light-grip" aria-hidden="true"></span>
+        <span class="light-sr-only">Pull to turn the light on</span>
+      </button>
+    </div>
+  </div>
+
+  <p class="light-hint" id="lightHint" role="status">Pull the cord to turn on the light.</p>
+
+  <!-- ============================================================ BRAND -->
+  <aside class="auth-aside">
+
+    <!-- ------------------------------------------- 3D campus scene (CSS) -->
+    <!-- decorative only: built entirely from 3D transforms, no image files -->
+    <div class="campus3d" id="campus3d" aria-hidden="true">
+      <div class="c3-tilt">
+        <div class="c3-iso">
+
+          <div class="c3-ground"></div>
+          <div class="c3-aura"></div>
+          <div class="c3-ring"></div>
+
+          <!-- clock tower: shaft, roof band, spire -->
+          <div class="c3-b" style="--x:-150px; --y:24px;  --z:0;   --w:46px; --d:46px;  --h:132px; --tint:222"><i></i></div>
+          <div class="c3-b" style="--x:-150px; --y:24px;  --z:132px;--w:60px; --d:60px;  --h:14px;  --tint:199"><i></i></div>
+          <div class="c3-b" style="--x:-150px; --y:24px;  --z:146px;--w:10px; --d:10px;  --h:34px;  --tint:199"><i></i></div>
+
+          <!-- main academic block + parapet -->
+          <div class="c3-b" style="--x:-10px;  --y:0;    --z:0;   --w:152px;--d:112px;--h:82px;  --tint:217"><i></i></div>
+          <div class="c3-b" style="--x:-10px;  --y:0;    --z:82px;--w:164px;--d:124px;--h:9px;   --tint:199"><i></i></div>
+
+          <!-- library -->
+          <div class="c3-b" style="--x:132px; --y:-46px;--z:0;   --w:112px;--d:92px; --h:66px;  --tint:262"><i></i></div>
+
+          <!-- laboratories -->
+          <div class="c3-b" style="--x:-176px;--y:-104px;--z:0;  --w:104px;--d:82px; --h:52px;  --tint:190"><i></i></div>
+
+          <!-- sports hall -->
+          <div class="c3-b" style="--x:66px;  --y:118px;--z:0;   --w:186px;--d:62px; --h:38px;  --tint:158"><i></i></div>
+
+          <!-- gate house + store -->
+          <div class="c3-b" style="--x:-52px; --y:150px;--z:0;   --w:52px; --d:52px; --h:28px;  --tint:38"><i></i></div>
+          <div class="c3-b" style="--x:196px; --y:96px; --z:0;   --w:46px; --d:46px; --h:24px;  --tint:275"><i></i></div>
+
+          <!-- lamp posts: thin block + glowing head -->
+          <div class="c3-b" style="--x:-96px;  --y:88px;  --z:0; --w:5px; --d:5px; --h:26px; --tint:210"><i></i></div>
+          <div class="c3-b c3-lit" style="--x:-96px;  --y:88px;  --z:26px; --w:11px; --d:11px; --h:11px; --tint:42"><i></i></div>
+          <div class="c3-b" style="--x:44px;   --y:92px;  --z:0; --w:5px; --d:5px; --h:26px; --tint:210"><i></i></div>
+          <div class="c3-b c3-lit" style="--x:44px;   --y:92px;  --z:26px; --w:11px; --d:11px; --h:11px; --tint:42"><i></i></div>
+          <div class="c3-b" style="--x:118px;  --y:36px;  --z:0; --w:5px; --d:5px; --h:26px; --tint:210"><i></i></div>
+          <div class="c3-b c3-lit" style="--x:118px;  --y:36px;  --z:26px; --w:11px; --d:11px; --h:11px; --tint:42"><i></i></div>
+          <div class="c3-b" style="--x:-108px; --y:-30px; --z:0; --w:5px; --d:5px; --h:26px; --tint:210"><i></i></div>
+          <div class="c3-b c3-lit" style="--x:-108px; --y:-30px; --z:26px; --w:11px; --d:11px; --h:11px; --tint:42"><i></i></div>
+        </div>
+
+        <!-- holographic cards floating in front of the campus -->
+        <div class="c3-hud a"><i class="bi bi-people-fill"></i>
+          <span>Students<small>live register</small></span></div>
+        <div class="c3-hud b"><i class="bi bi-shield-lock-fill"></i>
+          <span>Role based<small>401 / 403 guarded</small></span></div>
+        <div class="c3-hud c"><i class="bi bi-calendar2-check-fill"></i>
+          <span>Bookings<small>conflict free</small></span></div>
+      </div>
+    </div>
+
+    <div class="auth-brand">
+      <div class="brand-mark"><i class="bi bi-mortarboard-fill"></i></div>
+      <div>
+        <h1>Smart Campus</h1>
+        <p>INTEGRATED MANAGEMENT SYSTEM</p>
+      </div>
+    </div>
+
+    <div class="auth-headline">
+      <h2>Every campus resource,<br>one secure portal.</h2>
+      <p class="mt-3">
+        Students, faculty, courses, classrooms, laboratories, equipment,
+        events and resource bookings — managed from a single dashboard with
+        real-time conflict control and role based access.
+      </p>
+
+      <ul class="auth-points mt-4">
+        <li>
+          <i class="bi bi-shield-lock-fill"></i>
+          <span><strong>Separate security layer</strong> — BCrypt password hashing,
+            database backed sessions, 401 / 403 enforcement on the server.</span>
+        </li>
+        <li>
+          <i class="bi bi-calendar2-check-fill"></i>
+          <span><strong>Never double booked</strong> — a synchronised critical section
+            rejects overlapping reservations with HTTP 409.</span>
+        </li>
+        <li>
+          <i class="bi bi-graph-up-arrow"></i>
+          <span><strong>Live analytics</strong> — every card and chart is an aggregate
+            query, never a hardcoded number.</span>
+        </li>
+        <li>
+          <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+          <span><strong>Reports &amp; CSV export</strong> — generated on the server with
+            Java file handling and downloaded instantly.</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="auth-foot">
+      &copy; <span id="year"></span> Smart Campus &nbsp;·&nbsp; Object Oriented Programming
+      Project &nbsp;·&nbsp; Spring Boot + MySQL + Bootstrap
+    </div>
+  </aside>
+
+  <!-- ============================================================= FORM -->
+  <main class="auth-panel">
+    <div class="auth-card">
+
+      <div class="d-flex align-items-start justify-content-between mb-3">
+        <div>
+          <h3>Welcome Back!</h3>
+          <div class="sub mb-0">Sign in with your campus account to continue.</div>
+        </div>
+        <span class="chip"><i class="bi bi-lock-fill"></i> Secure</span>
+      </div>
+
+      <!-- messages injected by login.js -->
+      <div class="auth-alert" id="loginAlert">
+        <i class="bi bi-exclamation-circle-fill mt-1"></i>
+        <span id="loginAlertText"></span>
+      </div>
+
+      <form id="loginForm" novalidate>
+        <div class="mb-3">
+          <label class="form-label" for="email">Email address</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+            <input type="email" class="form-control" id="email" name="email"
+                   placeholder="you@smartcampus.com" autocomplete="username" required>
+          </div>
+          <div class="invalid-feedback">Please enter your email address.</div>
+        </div>
+
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <label class="form-label" for="password">Password</label>
+            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none"
+                    id="togglePassword" style="font-size:.75rem">
+              <i class="bi bi-eye"></i> Show
+            </button>
+          </div>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-key"></i></span>
+            <input type="password" class="form-control" id="password" name="password"
+                   placeholder="Enter your password" autocomplete="current-password" required>
+          </div>
+          <div class="invalid-feedback">Please enter your password.</div>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between mb-4">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="rememberMe">
+            <label class="form-check-label small text-secondary" for="rememberMe">
+              Keep me signed in
+            </label>
+          </div>
+          <span class="small text-secondary"><i class="bi bi-info-circle me-1"></i>Server validated</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-2" id="loginBtn">
+          <span class="btn-label"><i class="bi bi-box-arrow-in-right me-2"></i>Sign in</span>
+        </button>
+      </form>
+
+      <!-- ------------------------------------------------- demo accounts -->
+      <div class="demo-accounts">
+        <div class="demo-title">Demo accounts (one click fills the form)</div>
+
+        <div class="demo-row">
+          <div>
+            <strong>Administrator</strong><br>
+            <code>admin@smartcampus.com</code> · <code>Admin@123</code>
+          </div>
+          <button type="button" data-demo="admin@smartcampus.com|Admin@123">Use</button>
+        </div>
+
+        <div class="demo-row">
+          <div>
+            <strong>Faculty</strong><br>
+            <code>faculty@smartcampus.com</code> · <code>Faculty@123</code>
+          </div>
+          <button type="button" data-demo="faculty@smartcampus.com|Faculty@123">Use</button>
+        </div>
+
+        <div class="demo-row">
+          <div>
+            <strong>Student</strong><br>
+            <code>student@smartcampus.com</code> · <code>Student@123</code>
+          </div>
+          <button type="button" data-demo="student@smartcampus.com|Student@123">Use</button>
+        </div>
+      </div>
+
+      <p class="small text-secondary text-center mt-3 mb-0">
+        Access is restricted to authorised campus members.
+      </p>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/login.js"></script>
+<script src="js/lightcord.js"></script>
+</body>
+</html>

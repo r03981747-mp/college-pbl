@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · Smart Campus</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/responsive.css" rel="stylesheet">
+<link href="css/theme.css" rel="stylesheet">
+<script src="js/theme.js" defer></script>
+</head>
+<body>
+
+<!-- shown until the session and the statistics are ready -->
+<div class="page-loading" id="pageLoader">
+  <div class="box">
+    <div class="brand-mark"><i class="bi bi-mortarboard-fill"></i></div>
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="small text-secondary mt-3 mb-0">Loading your dashboard…</p>
+  </div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="overlay" id="sidebarOverlay"></div>
+
+  <div class="main-area">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="content">
+
+      <!-- ================================================ GREETING HERO -->
+      <section class="greeting-hero" id="greetingHero" aria-live="polite">
+        <div class="greeting-main">
+          <h1 class="greeting-title">
+            <span class="greeting-emoji" aria-hidden="true">👋</span>
+            <span id="greetingLine">Welcome back</span>
+          </h1>
+          <p class="greeting-sub" id="welcomeLine">
+            Welcome back to your Smart Campus Dashboard.
+          </p>
+          <div class="greeting-meta">
+            <span class="hero-chip"><i class="bi bi-clock"></i>
+              <span id="localClock">--:--</span>
+              <span id="localZone">local</span></span>
+            <span class="hero-chip"><i class="bi bi-calendar3"></i>
+              <span id="localDate">Loading…</span></span>
+            <span class="hero-chip"><i class="bi bi-shield-check"></i>
+              <span id="heroRole">—</span></span>
+          </div>
+        </div>
+        <div class="greeting-side">
+          <div class="greeting-avatar" id="heroAvatar">--</div>
+          <div class="greeting-actions">
+            <button class="btn btn-light btn-sm" id="refreshStats">
+              <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+            </button>
+            <a href="bookings.html" class="btn btn-white btn-sm">
+              <i class="bi bi-calendar-plus me-1"></i>New booking
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================ STAT CARDS -->
+      <div class="row g-3 mb-4" id="statCards">
+        <div class="col-6 col-xl-2">
+          <div class="stat-card accent-blue">
+            <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-value" data-stat="totalStudents">—</div>
+            <div class="stat-label">Students</div>
+            <div class="stat-foot" data-foot="students">loading…</div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-2">
+          <div class="stat-card accent-purple">
+            <div class="stat-icon"><i class="bi bi-person-badge-fill"></i></div>
+            <div class="stat-value" data-stat="totalFaculty">—</div>
+            <div class="stat-label">Faculty</div>
+            <div class="stat-foot" data-foot="faculty">loading…</div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-2">
+          <div class="stat-card accent-cyan">
+            <div class="stat-icon"><i class="bi bi-journal-bookmark-fill"></i></div>
+            <div class="stat-value" data-stat="totalCourses">—</div>
+            <div class="stat-label">Courses</div>
+            <div class="stat-foot" data-foot="courses">loading…</div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-2">
+          <div class="stat-card accent-green">
+            <div class="stat-icon"><i class="bi bi-building"></i></div>
+            <div class="stat-value" data-stat="resources">—</div>
+            <div class="stat-label">Resources</div>
+            <div class="stat-foot" data-foot="resources">classrooms + labs + equipment</div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-2">
+          <div class="stat-card accent-orange">
+            <div class="stat-icon"><i class="bi bi-calendar2-check-fill"></i></div>
+            <div class="stat-value" data-stat="activeBookings">—</div>
+            <div class="stat-label">Active bookings</div>
+            <div class="stat-foot" data-foot="bookings">loading…</div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-2">
+          <div class="stat-card accent-red">
+            <div class="stat-icon"><i class="bi bi-calendar2-event-fill"></i></div>
+            <div class="stat-value" data-stat="upcomingActivities">—</div>
+            <div class="stat-label">Upcoming events</div>
+            <div class="stat-foot" data-foot="activities">loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================ MODULE CARDS -->
+      <section class="module-section" id="moduleSection">
+        <div class="module-head">
+          <div>
+            <h2 class="module-head-title">Campus Modules</h2>
+            <p class="module-head-sub">
+              Every tile opens the live module behind it — same pages, same APIs,
+              same database records.
+            </p>
+          </div>
+          <div class="module-head-tools">
+            <span class="chip" id="moduleCount"><i class="bi bi-grid"></i> — modules</span>
+            <div class="module-search">
+              <i class="bi bi-search"></i>
+              <input type="search" id="moduleSearch" autocomplete="off"
+                     placeholder="Find a module…" aria-label="Search modules">
+            </div>
+            <div class="theme-tools">
+              <button type="button" class="theme-tools-btn" id="themeStyleBtn"
+                      aria-haspopup="true" aria-expanded="false"
+                      aria-controls="themeStyleMenu" title="Background style and theme color">
+                <i class="bi bi-palette-fill"></i>
+                <span class="theme-tools-label d-none d-sm-inline">Theme</span>
+                <i class="bi bi-chevron-down theme-caret" aria-hidden="true"></i>
+              </button>
+              <div class="theme-menu" id="themeStyleMenu" role="menu"
+                   aria-labelledby="themeStyleBtn" hidden></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="module-grid" id="moduleGrid"></div>
+
+        <div class="empty-inline d-none" id="moduleEmpty">
+          No module matches your search.
+        </div>
+      </section>
+
+      <!-- ================================================ CHARTS ROW 1 -->
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-lg-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 class="card-title mb-1">Bookings by status</h6>
+                  <small class="text-secondary">All time distribution</small>
+                </div>
+                <span class="chip"><i class="bi bi-pie-chart"></i> Live</span>
+              </div>
+              <div class="chart-box"><canvas id="chartBookingStatus"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 class="card-title mb-1">Students per department</h6>
+                  <small class="text-secondary">Who is the biggest cohort?</small>
+                </div>
+                <span class="chip"><i class="bi bi-bar-chart"></i> Live</span>
+              </div>
+              <div class="chart-box"><canvas id="chartDepartments"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 class="card-title mb-1">Resource utilisation</h6>
+                  <small class="text-secondary">Active vs maintenance vs inactive</small>
+                </div>
+                <span class="chip"><i class="bi bi-database"></i> Live</span>
+              </div>
+              <div class="chart-box"><canvas id="chartResources"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================ CHARTS ROW 2 -->
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-lg-7">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 class="card-title mb-1">Students per semester</h6>
+                  <small class="text-secondary">Intake across the academic terms</small>
+                </div>
+              </div>
+              <div class="chart-box tall"><canvas id="chartSemesters"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+          <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 class="card-title mb-1">Upcoming campus events</h6>
+                  <small class="text-secondary">Next activities on the calendar</small>
+                </div>
+                <a href="activities.html" class="btn btn-light btn-sm">View all</a>
+              </div>
+              <div id="eventList" class="flex-grow-1">
+                <div class="empty-inline">Loading events…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================ RECENT BOOKINGS -->
+      <div class="card">
+        <div class="card-body pb-0">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h6 class="card-title mb-1">Latest resource bookings</h6>
+              <small class="text-secondary">The five most recent reservations in the system</small>
+            </div>
+            <a href="bookings.html" class="btn btn-outline-primary btn-sm">
+              Open bookings <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+          </div>
+        </div>
+        <div class="table-responsive" id="recentBookingsTable">
+          <div class="empty-inline">Loading…</div>
+        </div>
+      </div>
+
+    </main>
+
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

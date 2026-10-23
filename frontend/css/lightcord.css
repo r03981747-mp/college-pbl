@@ -1,0 +1,442 @@
+/* ============================================================================
+ * lightcord.css - the "pull the cord" room for the login page
+ * ----------------------------------------------------------------------------
+ * LOAD ORDER: style.css -> responsive.css -> login3d.css -> lightcord.css
+ *
+ * The login page becomes a room with a hanging bulb and a pull cord:
+ *
+ *   data-light="off"   dark room, dim bulb, cord visible, form hidden
+ *   data-light="on"    warm glow, room lit, form fades in and rises
+ *
+ * The state itself is written on .auth-page by js/lightcord.js - this file
+ * only paints it.  NOTHING here touches the form logic: #loginForm, its
+ * validation, its error messages and js/login.js authentication keep running
+ * exactly as they did before.  Pulling the cord is a visual switch only.
+ *
+ * Everything is CSS transforms/transitions: no animation library.
+ * Loaded by login.html only - no other page is affected.
+ * ========================================================================== */
+
+/* ------------------------------------------------------------ room layers */
+.auth-page { position: relative; }
+
+/* the veil paints over the page background; the panels sit above it */
+.auth-aside,
+.auth-panel { position: relative; z-index: 1; }
+
+.room-veil,
+.room-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* dark, elegant night-blue room (never pure black) */
+.room-veil {
+  background:
+    radial-gradient(1200px 720px at 50% -6%, rgba(56, 89, 158, .38), transparent 62%),
+    linear-gradient(168deg, #0a1020 0%, #0e1830 46%, #0b1220 100%);
+  opacity: 1;
+  transition: opacity .9s ease;
+}
+
+/* warm pool of light around the bulb, only when the switch is on */
+.room-glow {
+  background:
+    radial-gradient(560px 420px at 50% 40px, rgba(251, 191, 36, .34), rgba(251, 191, 36, .10) 42%, transparent 72%);
+  opacity: 0;
+  transition: opacity .9s ease;
+}
+
+.auth-page[data-light="on"]  .room-veil { opacity: .08; }
+.auth-page[data-light="on"]  .room-glow { opacity: 1; }
+
+/* the brand wall dims with the room and brightens with the bulb */
+.auth-aside { transition: filter .85s ease; }
+.auth-page[data-light="off"] .auth-aside { filter: brightness(.58) saturate(.9); }
+
+/* ------------------------------------------------------------ the fixture */
+.light-rig {
+  --rig-scale: 1;
+  --pull: 0px;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 84px;
+  height: 320px;
+  transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: none;          /* only the cord below is clickable */
+}
+
+/* everything that swings hangs from this group (origin = the ceiling) */
+.light-swing {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 0;
+  transform: scale(var(--rig-scale)) rotate(calc(var(--pull) * .06deg));
+  transition: transform .6s cubic-bezier(.34, 1.5, .5, 1);   /* spring back */
+}
+/* idle sway once the light is on */
+.auth-page[data-light="on"] .light-swing {
+  animation: light-sway 4.6s ease-in-out infinite;
+}
+/* while the visitor holds the cord the sway stops and it tracks the hand */
+.light-rig.is-dragging .light-swing {
+  animation: none;
+  transition: none;
+}
+@keyframes light-sway {
+  0%, 100% { transform: scale(var(--rig-scale)) rotate(-2deg); }
+  50%      { transform: scale(var(--rig-scale)) rotate(2deg); }
+}
+
+/* ceiling cap + drop rod */
+.light-cap {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 26px;
+  height: 7px;
+  margin-left: -13px;
+  border-radius: 0 0 5px 5px;
+  background: linear-gradient(180deg, #9fadc3, #5f6d85);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .5);
+}
+.light-rod {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 3px;
+  height: 30px;
+  margin-left: -1.5px;
+  background: linear-gradient(90deg, #6d7a91, #ccd5e3 45%, #6d7a91);
+}
+
+/* metal screw socket */
+.light-socket {
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  width: 20px;
+  height: 15px;
+  margin-left: -10px;
+  border-radius: 3px 3px 5px 5px;
+  background: repeating-linear-gradient(180deg, #b7c2d3 0 3px, #8692a7 3px 5px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .45);
+}
+
+/* ------------------------------------------------------------------ bulb */
+.light-bulb {
+  position: absolute;
+  top: 47px;
+  left: 50%;
+  width: 50px;
+  height: 54px;
+  margin-left: -25px;
+  border-radius: 42% 42% 50% 50% / 34% 34% 66% 66%;
+  /* OFF: cool, switched-off glass with only a hint of warmth */
+  background: radial-gradient(circle at 34% 28%, #eef2f8, #b9c4d5 46%, #7c879b 78%, #5b6478);
+  box-shadow:
+    0 0 16px rgba(251, 191, 36, .14),
+    inset -7px -9px 16px rgba(15, 23, 42, .38);
+  transition: box-shadow .55s ease;
+}
+/* neck that meets the socket */
+.light-bulb::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 19px;
+  height: 10px;
+  margin-left: -9.5px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #aeb9cb, #7f8ba0);
+}
+/* ON: the glass fills with warm light (cross-fades over the cool glass) */
+.light-bulb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 34% 28%, #fffdf6, #ffeda0 42%, #fcd34d 74%, #efa62d);
+  opacity: 0;
+  transition: opacity .5s ease;
+}
+.auth-page[data-light="on"] .light-bulb::after { opacity: 1; }
+.auth-page[data-light="on"] .light-bulb {
+  box-shadow:
+    0 0 26px 9px rgba(251, 191, 36, .62),
+    0 0 84px 32px rgba(251, 191, 36, .26),
+    inset 0 0 16px rgba(255, 255, 255, .55);
+}
+
+/* filament: a small loop that only glows when the bulb is on */
+.light-filament {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 16px;
+  height: 13px;
+  margin: -7px 0 0 -8px;
+  border: 2px solid rgba(88, 101, 128, .55);
+  border-bottom: 0;
+  border-radius: 7px 7px 2px 2px;
+  color: rgba(88, 101, 128, .55);
+  z-index: 1;
+  transition: border-color .4s ease, color .4s ease, box-shadow .4s ease;
+}
+.light-filament::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 2px;
+  height: 7px;
+  margin-left: -1px;
+  background: currentColor;
+  border-radius: 0 0 2px 2px;
+}
+.auth-page[data-light="on"] .light-filament {
+  border-color: #fff6cf;
+  color: #fff6cf;
+  box-shadow: 0 0 12px 4px rgba(251, 191, 36, .8);
+}
+
+/* ------------------------------------------------------------ the pull cord */
+/* the whole cord + handle is one big button, so a click anywhere on it works */
+.light-pull {
+  position: absolute;
+  top: 46px;
+  left: calc(50% + 13px);        /* hangs from the side of the socket */
+  width: 26px;
+  height: calc(58px + var(--pull));
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;            /* dragging never scrolls the page */
+  -webkit-tap-highlight-color: transparent;
+}
+.light-rig.is-dragging .light-pull { cursor: grabbing; }
+
+.light-cord {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 100%;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #6b7789, #d3dbe8 45%, #6b7789);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .45);
+}
+
+/* the handle: a bead over a small brass fob */
+.light-grip {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 15px;
+  height: 26px;
+  margin-left: -7.5px;
+  border-radius: 7px 7px 10px 10px;
+  background: linear-gradient(180deg, #f4dfae, #cfa862 46%, #907338);
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, .5),
+    inset 0 1px 0 rgba(255, 255, 255, .65);
+  transition: filter .2s ease, transform .2s ease;
+}
+.light-grip::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #fdf0cd, #cba962 62%, #8d7038);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .45);
+}
+.light-pull:hover .light-grip,
+.light-pull:focus-visible .light-grip { filter: brightness(1.14); }
+.light-rig.is-dragging .light-grip { animation: none; transform: scale(1.08); }
+
+/* invite the first pull, then stand still */
+.auth-page[data-light="off"] .light-rig:not(.is-dragging) .light-grip {
+  animation: grip-nudge 2.8s ease-in-out infinite;
+}
+@keyframes grip-nudge {
+  0%, 84%, 100% { transform: translateX(0); }
+  90%           { transform: translateX(-2px); }
+  95%           { transform: translateX(2px); }
+}
+
+/* keyboard users get an obvious focus ring, not colour alone */
+.light-pull:focus-visible {
+  outline: 2px solid #fbbf24;
+  outline-offset: 3px;
+}
+.light-pull:focus-visible .light-grip {
+  box-shadow:
+    0 0 0 4px rgba(251, 191, 36, .35),
+    0 4px 10px rgba(0, 0, 0, .5),
+    inset 0 1px 0 rgba(255, 255, 255, .65);
+}
+
+.light-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------- the hint */
+/* a soft chip so the instruction stays readable over the dark brand panel
+   and over the lit room as well */
+.light-hint {
+  position: absolute;
+  top: 200px;
+  left: 50%;
+  width: min(330px, 86vw);
+  box-sizing: border-box;
+  margin: 0;
+  padding: .4rem .9rem;
+  transform: translateX(-50%);
+  z-index: 5;
+  text-align: center;
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .015em;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  background: rgba(10, 16, 32, .6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #dbe4f0;
+  transition: color .6s ease, background-color .6s ease, border-color .6s ease;
+}
+.auth-page[data-light="on"] .light-hint {
+  background: rgba(255, 255, 255, .82);
+  border-color: rgba(15, 23, 42, .08);
+  color: #334155;
+}
+
+/* ------------------------------------------------------------- the form */
+/* the panel keeps the card low so the cord always has room above it */
+.auth-panel {
+  align-items: flex-start;
+  padding-top: 240px;
+}
+
+.auth-page[data-light="off"] .auth-card {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(26px) scale(.985);
+  transition:
+    opacity .3s ease,
+    transform .3s ease,
+    visibility 0s linear .3s;
+}
+.auth-page[data-light="on"] .auth-card {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition:
+    opacity .55s ease .12s,
+    transform .6s cubic-bezier(.22, 1, .36, 1) .12s,
+    visibility 0s,
+    background-color .5s ease,
+    box-shadow .5s ease,
+    border-color .5s ease;
+}
+
+/* glassmorphism panel while the light is on - same fields, same behaviour */
+.auth-page[data-light="on"] .auth-card {
+  background: linear-gradient(160deg, rgba(255, 255, 255, .94), rgba(255, 255, 255, .8));
+  border-color: rgba(255, 255, 255, .75);
+  border-radius: 24px;
+  backdrop-filter: blur(14px) saturate(1.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .9),
+    0 0 0 1px rgba(15, 23, 42, .05),
+    0 28px 54px -22px rgba(2, 6, 23, .5),
+    0 40px 90px -50px rgba(251, 191, 36, .55);
+}
+
+/* ------------------------------------------------------- responsive + motion */
+@media (max-height: 900px) {
+  .light-rig { --rig-scale: .88; }
+  .light-hint { top: 178px; }
+  .auth-panel { padding-top: 214px; }
+}
+@media (max-height: 800px) {
+  .light-rig { --rig-scale: .78; }
+  .light-hint { top: 158px; }
+  .auth-panel { padding-top: 194px; }
+}
+@media (max-height: 700px) {
+  .light-rig { --rig-scale: .7; }
+  .light-hint { top: 142px; }
+  .auth-panel { padding-top: 178px; }
+}
+
+/* the brand panel is hidden below 992px (responsive.css) - the room and the
+   cord simply take the whole screen on phones.
+   The rotated blueprint drawn by login3d.css behind the form projects past
+   the panel edge once it is full width, so it is clipped there: no page can
+   scroll sideways any more (overflow-x: clip keeps the vertical overflow). */
+@media (max-width: 991.98px) {
+  .auth-panel {
+    padding-top: 226px;
+    padding-bottom: 1.5rem;
+    overflow-x: clip;
+  }
+  .light-hint { top: 190px; }
+}
+@media (max-width: 991.98px) and (max-height: 800px) {
+  .auth-panel { padding-top: 196px; }
+  .light-rig { --rig-scale: .8; }
+  .light-hint { top: 158px; }
+}
+
+@media (max-width: 575.98px) {
+  .auth-page[data-light="on"] .auth-card { border-radius: 18px; }
+}
+
+/* motion is optional: the light still switches, it simply stops moving */
+@media (prefers-reduced-motion: reduce) {
+  .light-swing,
+  .auth-page[data-light="on"] .light-swing,
+  .light-grip {
+    animation: none !important;
+    transition: none !important;
+  }
+  .room-veil,
+  .room-glow,
+  .auth-aside,
+  .auth-page[data-light="on"] .auth-card,
+  .auth-page[data-light="off"] .auth-card,
+  .light-bulb,
+  .light-bulb::after,
+  .light-filament,
+  .light-hint {
+    transition-duration: .16s !important;
+    transition-delay: 0s !important;
+  }
+  .auth-page[data-light="off"] .auth-card { transform: none; }
+  .auth-page[data-light="on"]  .auth-card { transform: none; }
+}
