@@ -47,7 +47,7 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(authInterceptor).addPathPatterns("/api/**");
     }
 
-    /** Allow the Live Server origin to call the API. */
+    /** Allow the Live Server origin and Vercel frontend to call the API. */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")

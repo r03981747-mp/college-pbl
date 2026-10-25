@@ -20,9 +20,29 @@
  * ==========================================================================*/
 
 /** Base URL of the REST API.
- *  Same origin when the page is served by Spring Boot (port 8080),
- *  otherwise the Live Server origin calls the backend directly (CORS). */
-const API_BASE = location.port === '8080' ? '/api' : 'http://localhost:8080/api';
+ *
+ *  Production (Vercel) and the bundled Spring Boot server both serve the UI
+ *  and the API from the same origin, so "/api" is all that is needed.
+ *  When the HTML is opened through VS Code Live Server (or directly from
+ *  disk), the backend is on localhost:8080 instead.
+ *
+ *  A host can optionally override this before api.js loads:
+ *      window.SMART_CAMPUS_API_BASE = 'https://api.example.com/api';
+ */
+function resolveApiBase() {
+  const configured = (window.SMART_CAMPUS_API_BASE || '').trim();
+  if (configured) return configured.replace(/\/+$/, '');
+
+  const localHost = location.hostname === 'localhost'
+    || location.hostname === '127.0.0.1'
+    || location.protocol === 'file:';
+  if (localHost && location.port !== '8080') {
+    return 'http://localhost:8080/api';
+  }
+  return '/api';
+}
+
+const API_BASE = resolveApiBase();
 
 const TOKEN_KEY = 'smartcampus.token';
 const USER_KEY = 'smartcampus.user';
@@ -106,7 +126,7 @@ async function apiRequest(path, options = {}) {
     response = await fetch(url, Object.assign({}, options, { headers }));
   } catch (networkError) {
     throw new ApiError(
-      'Cannot reach the server. Make sure the Spring Boot backend is running on http://localhost:8080',
+      'Cannot reach the server. Check the backend/API URL and try again.',
       0
     );
   }

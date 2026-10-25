@@ -1,0 +1,17 @@
+.git
+.github
+.vscode
+.idea
+.vercel
+node_modules
+tests
+frontend/_uitest.html
+frontend/_lighttest.html
+backend/target
+backend/exports
+backend/logs
+backend/run.log
+*.log
+.env
+.env.*
+!.env.example
