@@ -1,5 +1,5 @@
 -- =====================================================================================
---  SMART CAMPUS - DEPLOYMENT SCHEMA (managed MySQL: Aiven, Railway, etc.)
+--  SMART CAMPUS - DEPLOYMENT SCHEMA (managed MySQL-compatible: TiDB Cloud, Aiven, etc.)
 --
 --  Use this file instead of database/schema.sql when the database already exists
 --  and you do not have permission to CREATE/DROP databases.
