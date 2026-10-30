@@ -233,7 +233,11 @@ function formatTime(value) {
 
 function formatDateTime(value) {
   if (!value) return '—';
-  return `${formatDate(value)} ${formatTime(value)}`;
+  const text = String(value);
+  // API timestamps arrive as ISO local date-time strings (2026-10-30T07:10:11),
+  // while date-only values must not gain a bogus time suffix.
+  const match = text.match(/^\d{4}-\d{2}-\d{2}[T ](\d{2}:\d{2})/);
+  return match ? `${formatDate(text)} ${match[1]}` : formatDate(text);
 }
 
 function formatNumber(value) {
