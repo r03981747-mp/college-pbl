@@ -1,79 +1,12 @@
 -- =====================================================================================
---  SMART CAMPUS - ACADEMIC ENHANCEMENT MIGRATION
---
---  Safe to run against an existing smart_campus_db that already contains the
---  original 11 tables and real student/faculty/course data.  It only adds:
---    * students.class_teacher_id / students.mentor_id
---    * academic_settings, assessments, student_marks, attendance,
---      assignments, assignment_submissions
---
---  The script is idempotent: columns, indexes and foreign keys are checked in
---  information_schema before they are added, and every table uses IF NOT EXISTS.
---
---  Run:
---      mysql -u root -p smart_campus_db < database/academic_migration.sql
---  or execute this file in MySQL Workbench against smart_campus_db.
+--  SMART CAMPUS - ACADEMIC TABLES (idempotent)
+--  Used by AcademicSchemaMigration after the students columns/indexes exist.
+--  Kept separate from academic_migration.sql because TiDB does not support
+--  the PREPARE/EXECUTE dynamic SQL used there.
 -- =====================================================================================
 
 SET NAMES utf8mb4;
 
--- -------------------------------------------------------------------------------------
--- 1. Add the class teacher / mentor columns to the existing students table.
--- -------------------------------------------------------------------------------------
-SET @has_class_teacher := (
-    SELECT COUNT(*) FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'students'
-      AND COLUMN_NAME = 'class_teacher_id'
-);
-
-SET @sql := IF(@has_class_teacher = 0,
-    'ALTER TABLE students
-        ADD COLUMN class_teacher_id INT NULL COMMENT ''Faculty member assigned as class teacher'',
-        ADD COLUMN mentor_id INT NULL COMMENT ''Faculty member assigned as mentor'',
-        ADD INDEX idx_students_class_teacher (class_teacher_id),
-        ADD INDEX idx_students_mentor (mentor_id)',
-    'SELECT 1');
-PREPARE academic_stmt FROM @sql;
-EXECUTE academic_stmt;
-DEALLOCATE PREPARE academic_stmt;
-
--- -------------------------------------------------------------------------------------
--- 2. Foreign keys (added after the columns exist).
--- -------------------------------------------------------------------------------------
-SET @has_ct_fk := (
-    SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
-    WHERE CONSTRAINT_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'students'
-      AND CONSTRAINT_NAME = 'fk_student_class_teacher'
-);
-SET @sql := IF(@has_ct_fk = 0,
-    'ALTER TABLE students ADD CONSTRAINT fk_student_class_teacher
-        FOREIGN KEY (class_teacher_id) REFERENCES faculty (id) ON DELETE SET NULL',
-    'SELECT 1');
-PREPARE academic_stmt FROM @sql;
-EXECUTE academic_stmt;
-DEALLOCATE PREPARE academic_stmt;
-
-SET @has_mentor_fk := (
-    SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
-    WHERE CONSTRAINT_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'students'
-      AND CONSTRAINT_NAME = 'fk_student_mentor'
-);
-SET @sql := IF(@has_mentor_fk = 0,
-    'ALTER TABLE students ADD CONSTRAINT fk_student_mentor
-        FOREIGN KEY (mentor_id) REFERENCES faculty (id) ON DELETE SET NULL',
-    'SELECT 1');
-PREPARE academic_stmt FROM @sql;
-EXECUTE academic_stmt;
-DEALLOCATE PREPARE academic_stmt;
-
--- -------------------------------------------------------------------------------------
--- 3. Configurable eligibility rules (single row, id = 1).
---    rules_configured = FALSE means the UI shows Pending / Insufficient data until
---    an administrator explicitly saves the thresholds.
--- -------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS academic_settings (
     id                         INT PRIMARY KEY,
     min_attendance_percentage  DECIMAL(5,2) NOT NULL DEFAULT 75.00,

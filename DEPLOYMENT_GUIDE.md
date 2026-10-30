@@ -176,24 +176,30 @@ Demo accounts after loading the sample data:
 ### Upgrading an existing database (marks, attendance, assignments, eligibility)
 
 If the database already contains the original 11 tables and you are adding the
-academic modules, do **not** reload `deploy_schema.sql` (it drops tables). Run
-the additive migration instead:
+academic modules, do **not** reload `deploy_schema.sql` (it drops tables).
 
-```powershell
-& $mysql --ssl-mode=REQUIRED -h HOST -P 4000 -u 'PREFIX.USER' -p smart_campus_db `
-  < database/academic_migration.sql
-```
+The recommended upgrade path is the application's automatic startup migration.
+On startup it checks `information_schema` and adds only the missing academic
+columns and tables. It uses direct DDL rather than `PREPARE`/`EXECUTE`, so it
+works on both MySQL 8 and TiDB Cloud. It is enabled by default
+(`APP_DB_ACADEMIC_MIGRATION_ENABLED=true`) and is idempotent, so restarts are
+safe. Startup migration failures are logged without stopping the app.
 
-The script is idempotent. It adds:
+It adds:
 
 - `students.class_teacher_id` and `students.mentor_id`
 - `academic_settings`, `assessments`, `student_marks`, `attendance`,
   `assignments`, and `assignment_submissions`
 
-The Spring Boot application also runs this same script automatically at startup
-when it detects an older schema (`APP_DB_ACADEMIC_MIGRATION_ENABLED=true`, the
-default). Startup migration failures are logged without stopping the app, so an
-operator can still apply the SQL manually.
+If you need to apply the schema before deploying, use the script for your
+database:
+
+- **MySQL 8:** `database/academic_migration.sql` is the idempotent manual
+  migration (it uses `PREPARE`/`EXECUTE`).
+- **TiDB Cloud:** rely on the automatic startup migration, or run the two
+  `ALTER TABLE students` statements from `database/academic_migration.sql`
+  followed by `backend/src/main/resources/db/academic_tables.sql`. The table
+  script is plain `CREATE TABLE IF NOT EXISTS` and is TiDB-compatible.
 
 After the schema exists, sign in as an administrator and open
 **Academics → Academic Setup** to configure the eligibility thresholds and
@@ -360,8 +366,8 @@ A host can also override the API URL before `api.js` loads:
 | `backend/Dockerfile` | Alternative standalone backend image for Railway or another container host. |
 | `database/deploy_schema.sql` | Creates tables in an existing managed MySQL-compatible database. |
 | `database/deploy_sample_data.sql` | Loads the demo users and records. |
-| `database/academic_migration.sql` | Additive upgrade for databases created before marks, attendance, assignments and eligibility existed. |
-| `backend/src/main/resources/db/academic_migration.sql` | Classpath copy used by the automatic startup migration. |
+| `database/academic_migration.sql` | Idempotent MySQL 8 upgrade for databases created before marks, attendance, assignments and eligibility existed. |
+| `backend/src/main/resources/db/academic_tables.sql` | TiDB-compatible table DDL used by the automatic startup migration. |
 | `.env.example` | Names and example values for the Vercel environment variables. |
 | `.dockerignore`, `.vercelignore` | Keeps build artifacts, logs, and secrets out of deployment uploads. |
 
