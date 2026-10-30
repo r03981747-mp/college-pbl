@@ -250,8 +250,13 @@ const BadgePalette = {
   GOOD: 'bg-success-subtle text-success border-success-emphasis',
   PUBLISHED: 'bg-success-subtle text-success border-success-emphasis',
   ENABLED: 'bg-success-subtle text-success border-success-emphasis',
+  PRESENT: 'bg-success-subtle text-success border-success-emphasis',
+  ELIGIBLE: 'bg-success-subtle text-success border-success-emphasis',
+  GRADED: 'bg-success-subtle text-success border-success-emphasis',
 
   PENDING: 'bg-warning-subtle text-warning border-warning-emphasis',
+  LATE: 'bg-warning-subtle text-warning border-warning-emphasis',
+  SUBMITTED: 'bg-info-subtle text-info border-info-emphasis',
   ONGOING: 'bg-warning-subtle text-warning border-warning-emphasis',
   MAINTENANCE: 'bg-warning-subtle text-warning border-warning-emphasis',
   REPAIR: 'bg-warning-subtle text-warning border-warning-emphasis',
@@ -259,6 +264,8 @@ const BadgePalette = {
   BORROWED: 'bg-warning-subtle text-warning border-warning-emphasis',
 
   REJECTED: 'bg-danger-subtle text-danger border-danger-emphasis',
+  ABSENT: 'bg-danger-subtle text-danger border-danger-emphasis',
+  NOTELIGIBLE: 'bg-danger-subtle text-danger border-danger-emphasis',
   INACTIVE: 'bg-danger-subtle text-danger border-danger-emphasis',
   DISABLED: 'bg-danger-subtle text-danger border-danger-emphasis',
   DECOMMISSIONED: 'bg-danger-subtle text-danger border-danger-emphasis',

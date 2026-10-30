@@ -12,9 +12,12 @@ import com.smartcampus.exception.DuplicateRecordException;
 import com.smartcampus.exception.ForbiddenException;
 import com.smartcampus.exception.InvalidInputException;
 import com.smartcampus.exception.StudentNotFoundException;
+import com.smartcampus.model.Faculty;
 import com.smartcampus.model.Student;
 import com.smartcampus.model.enums.Role;
 import com.smartcampus.model.enums.StudentStatus;
+import com.smartcampus.repository.CourseRepository;
+import com.smartcampus.repository.FacultyRepository;
 import com.smartcampus.repository.StudentRepository;
 import com.smartcampus.security.AuthContext;
 import com.smartcampus.security.AuthenticatedUser;
@@ -28,10 +31,17 @@ import com.smartcampus.utility.Validators;
 public class StudentServiceImpl implements StudentService {
 
     private final StudentRepository repository;
+    private final FacultyRepository facultyRepository;
+    private final CourseRepository courseRepository;
     private final AuditLogService auditLog;
 
-    public StudentServiceImpl(StudentRepository repository, AuditLogService auditLog) {
+    public StudentServiceImpl(StudentRepository repository,
+                              FacultyRepository facultyRepository,
+                              CourseRepository courseRepository,
+                              AuditLogService auditLog) {
         this.repository = repository;
+        this.facultyRepository = facultyRepository;
+        this.courseRepository = courseRepository;
         this.auditLog = auditLog;
     }
 
@@ -42,8 +52,9 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public PagedResponse<Student> list(SearchCriteria criteria) {
         criteria.normalise();
-        List<Student> content = repository.search(criteria);
-        long total = repository.count(criteria);
+        Long facultyId = facultyScopeId();
+        List<Student> content = repository.search(criteria, facultyId);
+        long total = repository.count(criteria, facultyId);
         return PagedResponse.of(content, criteria, total);
     }
 
@@ -107,7 +118,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public List<Student> search(String keyword, int maxResults) {
         SearchCriteria criteria = new SearchCriteria(keyword, 0, Math.max(1, maxResults));
-        return repository.search(criteria);
+        return repository.search(criteria, facultyScopeId());
     }
 
     // ==================================================================
@@ -138,13 +149,54 @@ public class StudentServiceImpl implements StudentService {
     public Student getVisible(Long studentId) {
         Student student = getById(studentId);
 
-        // students may only open their own record; admins/faculty may open any
         AuthenticatedUser current = AuthContext.get();
-        if (current != null && current.role() == Role.STUDENT
-                && !Objects.equals(student.getUserId(), current.id())) {
-            throw new ForbiddenException("You may only view your own student profile.");
+        if (current == null) {
+            throw new ForbiddenException("You must be signed in to view a student profile.");
         }
+
+        if (current.role() == Role.STUDENT) {
+            if (!Objects.equals(student.getUserId(), current.id())) {
+                throw new ForbiddenException("You may only view your own student profile.");
+            }
+            return student;
+        }
+
+        if (current.role() == Role.FACULTY) {
+            Faculty faculty = facultyRepository.findByUserId(current.id())
+                    .orElseThrow(() -> new ForbiddenException(
+                            "No faculty profile is linked to this account."));
+            boolean assigned = Objects.equals(student.getClassTeacherId(), faculty.getId())
+                    || Objects.equals(student.getMentorId(), faculty.getId())
+                    || courseRepository.existsActiveForFacultyAndClass(
+                            faculty.getId(), student.getDepartment(), student.getSemester());
+            if (!assigned) {
+                throw new ForbiddenException(
+                        "You may only view students assigned to your subjects or mentoring group.");
+            }
+        }
+
         return student;
+    }
+
+    /**
+     * Returns null for administrators (unrestricted) and the faculty id for
+     * faculty (restricted).  Students may not use the register endpoints.
+     */
+    private Long facultyScopeId() {
+        AuthenticatedUser current = AuthContext.get();
+        if (current == null) {
+            throw new ForbiddenException("You must be signed in.");
+        }
+        if (current.role() == Role.ADMIN) {
+            return null;
+        }
+        if (current.role() == Role.FACULTY) {
+            return facultyRepository.findByUserId(current.id())
+                    .map(Faculty::getId)
+                    .orElseThrow(() -> new ForbiddenException(
+                            "No faculty profile is linked to this account."));
+        }
+        throw new ForbiddenException("Students may only view their own record.");
     }
 
     // ==================================================================

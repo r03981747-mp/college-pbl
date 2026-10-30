@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Academic Setup · Smart Campus</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/responsive.css" rel="stylesheet">
+<link href="css/theme.css" rel="stylesheet">
+<link href="css/academic.css" rel="stylesheet">
+<script src="js/theme.js" defer></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="overlay" id="sidebarOverlay"></div>
+
+  <div class="main-area">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="content academic-page">
+      <div class="page-header">
+        <div>
+          <h1>Academic Setup</h1>
+          <p>Configure the eligibility rules used for every student and assign class teachers or mentors.</p>
+        </div>
+        <div class="page-actions">
+          <span class="chip"><i class="bi bi-shield-check text-success"></i>
+            Role: <strong data-user-role>—</strong></span>
+          <a href="profile.html" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-people me-1"></i>Student profiles
+          </a>
+        </div>
+      </div>
+
+      <div id="settingsAlert" class="alert d-none" role="alert" aria-live="polite"></div>
+
+      <!-- ========================================== NO ACCESS PANEL -->
+      <div id="settingsDenied" class="d-none">
+        <div class="card">
+          <div class="card-body">
+            <div class="text-center py-5 px-3">
+              <div class="display-6 text-warning opacity-50 mb-2"><i class="bi bi-shield-lock"></i></div>
+              <div class="fw-semibold text-secondary">Administrator access required</div>
+              <div class="small text-muted mt-1">Only an administrator can change eligibility rules or academic assignments.</div>
+              <a href="index.html" class="btn btn-outline-primary btn-sm mt-3">
+                <i class="bi bi-grid-1x2 me-1"></i>Back to dashboard
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="settingsContent" class="d-none">
+        <div id="settingsStatus" class="mb-4"></div>
+
+        <div class="row g-4">
+          <div class="col-xl-7">
+            <div class="card settings-card">
+              <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-sliders me-1"></i>Eligibility rules</h6>
+                <small class="text-secondary">Changes apply immediately when students next load their eligibility page.</small>
+              </div>
+              <form id="settingsForm" class="card-body" novalidate>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label" for="minAttendancePercentage">Minimum attendance (%) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="minAttendancePercentage" name="minAttendancePercentage"
+                           min="0" max="100" step="0.01" required>
+                    <div class="rule-help">Late arrivals may count as present depending on the setting below.</div>
+                    <div class="invalid-feedback">Enter a value between 0 and 100.</div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="minMarksPercentage">Minimum marks (%) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="minMarksPercentage" name="minMarksPercentage"
+                           min="0" max="100" step="0.01" required>
+                    <div class="rule-help">Calculated from published assessment scores.</div>
+                    <div class="invalid-feedback">Enter a value between 0 and 100.</div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="minAssessmentsRequired">Minimum assessments required</label>
+                    <input type="number" class="form-control" id="minAssessmentsRequired" name="minAssessmentsRequired"
+                           min="0" max="100" step="1" required>
+                    <div class="rule-help">Below this number, the result is pending / insufficient data.</div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="minAttendanceRecords">Minimum attendance records</label>
+                    <input type="number" class="form-control" id="minAttendanceRecords" name="minAttendanceRecords"
+                           min="0" max="500" step="1" required>
+                    <div class="rule-help">Below this number, the result is pending / insufficient data.</div>
+                  </div>
+                  <div class="col-12"><hr class="my-1"></div>
+                  <div class="col-md-4">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="requireMarks" name="requireMarks">
+                      <label class="form-check-label" for="requireMarks">Require marks threshold</label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="requireAttendance" name="requireAttendance">
+                      <label class="form-check-label" for="requireAttendance">Require attendance threshold</label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="lateCountsAsPresent" name="lateCountsAsPresent">
+                      <label class="form-check-label" for="lateCountsAsPresent">Late counts as present</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 pt-3 border-top">
+                  <div class="small text-secondary" id="settingsUpdatedText">—</div>
+                  <button type="submit" class="btn btn-primary" id="saveSettingsBtn">
+                    <i class="bi bi-check2-circle me-1"></i>Save eligibility rules
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="col-xl-5">
+            <div class="card academic-card mb-4">
+              <div class="card-header"><h6 class="mb-0">How eligibility is calculated</h6></div>
+              <div class="card-body">
+                <div class="eligibility-check">
+                  <span class="icon met"><i class="bi bi-check-lg"></i></span>
+                  <div><div class="label">Eligible</div><div class="detail">Every required threshold is met and enough data exists.</div></div>
+                </div>
+                <div class="eligibility-check">
+                  <span class="icon unmet"><i class="bi bi-x-lg"></i></span>
+                  <div><div class="label">Not eligible</div><div class="detail">At least one required threshold is below the configured minimum.</div></div>
+                </div>
+                <div class="eligibility-check">
+                  <span class="icon pending"><i class="bi bi-hourglass"></i></span>
+                  <div><div class="label">Pending / insufficient data</div><div class="detail">There are not enough published marks or attendance records to decide.</div></div>
+                </div>
+                <div class="empty-inline mt-3">
+                  <i class="bi bi-info-circle me-1"></i>Eligibility is calculated from the live database; no status is stored or frozen.
+                </div>
+              </div>
+            </div>
+
+            <div class="card academic-card">
+              <div class="card-header"><h6 class="mb-0">Class teacher & mentor</h6></div>
+              <div class="card-body">
+                <p class="small text-secondary">Class teachers and mentors are assigned per student from the academic profile screen. Faculty only see students they teach or are assigned to support.</p>
+                <a href="profile.html" class="btn btn-outline-primary btn-sm">
+                  <i class="bi bi-person-gear me-1"></i>Open student profiles
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/academic.js"></script>
+<script src="js/academic-settings.js"></script>
+</body>
+</html>

@@ -2,6 +2,7 @@
 backend/target/
 backend/exports/*.csv
 backend/logs/*.log
+backend/uploads/
 *.class
 *.jar
 !maven-wrapper.jar

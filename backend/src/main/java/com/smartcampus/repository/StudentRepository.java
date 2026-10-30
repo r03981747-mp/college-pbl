@@ -27,20 +27,24 @@ public class StudentRepository extends JdbcSupport
         implements GenericRepository<Student, Long>, SearchableRepository<Student> {
 
     private static final String BASE_SELECT = """
-            SELECT id, usn, name, email, phone, gender, date_of_birth, department,
-                   semester, section, address, admission_year, status, user_id, created_at
-            FROM students """;
+            SELECT s.id, s.usn, s.name, s.email, s.phone, s.gender, s.date_of_birth,
+                   s.department, s.semester, s.section, s.address, s.admission_year,
+                   s.status, s.user_id, s.class_teacher_id, s.mentor_id,
+                   ct.name AS class_teacher_name, m.name AS mentor_name, s.created_at
+            FROM students s
+            LEFT JOIN faculty ct ON ct.id = s.class_teacher_id
+            LEFT JOIN faculty m ON m.id = s.mentor_id """;
 
     /** Whitelist mapping UI sort keys to real database columns. */
     private static final Map<String, String> SORT_COLUMNS = Map.of(
-            "name", "name",
-            "usn", "usn",
-            "email", "email",
-            "department", "department",
-            "semester", "semester",
-            "admissionYear", "admission_year",
-            "status", "status",
-            "id", "id");
+            "name", "s.name",
+            "usn", "s.usn",
+            "email", "s.email",
+            "department", "s.department",
+            "semester", "s.semester",
+            "admissionYear", "s.admission_year",
+            "status", "s.status",
+            "id", "s.id");
 
     /**
      * Row mapper written as a LAMBDA EXPRESSION.
@@ -64,6 +68,10 @@ public class StudentRepository extends JdbcSupport
         student.setStatus(enumOf(com.smartcampus.model.enums.StudentStatus.class,
                 str(rs, "status"), com.smartcampus.model.enums.StudentStatus.ACTIVE));
         student.setUserId(nullableLong(rs, "user_id"));
+        student.setClassTeacherId(nullableLong(rs, "class_teacher_id"));
+        student.setClassTeacherName(str(rs, "class_teacher_name"));
+        student.setMentorId(nullableLong(rs, "mentor_id"));
+        student.setMentorName(str(rs, "mentor_name"));
         student.setCreatedAt(dateTime(rs, "created_at"));
         return student;
     };
@@ -96,12 +104,12 @@ public class StudentRepository extends JdbcSupport
 
     @Override
     public Optional<Student> findById(Long id) {
-        return queryOne(BASE_SELECT + " WHERE id = ?", STUDENT_ROW, id);
+        return queryOne(BASE_SELECT + " WHERE s.id = ?", STUDENT_ROW, id);
     }
 
     @Override
     public List<Student> findAll() {
-        return query(BASE_SELECT + " ORDER BY name ASC", STUDENT_ROW);
+        return query(BASE_SELECT + " ORDER BY s.name ASC", STUDENT_ROW);
     }
 
     @Override
@@ -147,11 +155,19 @@ public class StudentRepository extends JdbcSupport
 
     @Override
     public List<Student> search(SearchCriteria criteria) {
-        SqlCriteria where = buildFilter(criteria);
+        return search(criteria, null);
+    }
+
+    /**
+     * Faculty-scoped search.  A null {@code facultyId} means the caller is an
+     * administrator and may see every student.
+     */
+    public List<Student> search(SearchCriteria criteria, Long facultyId) {
+        SqlCriteria where = buildFilter(criteria, facultyId);
 
         String sql = BASE_SELECT
                 + where.getWhere() + " "
-                + SqlCriteria.orderBy(criteria.getSort(), SORT_COLUMNS, "name") + " "
+                + SqlCriteria.orderBy(criteria.getSort(), SORT_COLUMNS, "s.name") + " "
                 + SqlCriteria.direction(criteria.getDirection())
                 + " LIMIT ?, ?";
 
@@ -164,27 +180,45 @@ public class StudentRepository extends JdbcSupport
 
     @Override
     public long count(SearchCriteria criteria) {
-        SqlCriteria where = buildFilter(criteria);
-        return queryForLong("SELECT COUNT(*) FROM students " + where.getWhere(),
+        return count(criteria, null);
+    }
+
+    public long count(SearchCriteria criteria, Long facultyId) {
+        SqlCriteria where = buildFilter(criteria, facultyId);
+        return queryForLong("SELECT COUNT(*) FROM students s " + where.getWhere(),
                 where.getParamsArray());
     }
 
     /** Keyword + structured filters, all bound as PreparedStatement parameters. */
-    private SqlCriteria buildFilter(SearchCriteria criteria) {
+    private SqlCriteria buildFilter(SearchCriteria criteria, Long facultyId) {
         SqlCriteria where = new SqlCriteria();
 
         if (criteria.hasKeyword()) {
             String like = "%" + criteria.getKeyword().toLowerCase() + "%";
-            where.and("(LOWER(usn) LIKE ? OR LOWER(name) LIKE ?"
-                    + " OR LOWER(email) LIKE ? OR LOWER(department) LIKE ?)",
+            where.and("(LOWER(s.usn) LIKE ? OR LOWER(s.name) LIKE ?"
+                    + " OR LOWER(s.email) LIKE ? OR LOWER(s.department) LIKE ?)",
                     like, like, like, like);
         }
 
-        where.andNotBlank(criteria.filter("department"), "department = ?");
-        where.andNumeric(criteria.filter("semester"), "semester = ?");
-        where.andNotBlank(criteria.filter("status"), "status = ?");
-        where.andNotBlank(criteria.filter("section"), "section = ?");
-        where.andNumeric(criteria.filter("admissionYear"), "admission_year = ?");
+        where.andNotBlank(criteria.filter("department"), "s.department = ?");
+        where.andNumeric(criteria.filter("semester"), "s.semester = ?");
+        where.andNotBlank(criteria.filter("status"), "s.status = ?");
+        where.andNotBlank(criteria.filter("section"), "s.section = ?");
+        where.andNumeric(criteria.filter("admissionYear"), "s.admission_year = ?");
+
+        if (facultyId != null) {
+            // A faculty member sees a student only when they are the class
+            // teacher/mentor or teach a subject in that student's class.
+            where.and("""
+                    (s.class_teacher_id = ? OR s.mentor_id = ?
+                     OR EXISTS (
+                         SELECT 1 FROM courses c
+                         WHERE c.faculty_id = ?
+                           AND c.department = s.department
+                           AND c.semester = s.semester
+                           AND c.status = 'ACTIVE'
+                     ))""", facultyId, facultyId, facultyId);
+        }
 
         return where;
     }
@@ -215,17 +249,17 @@ public class StudentRepository extends JdbcSupport
 
     /** Looks up the student profile linked to a login account (own-profile view). */
     public Optional<Student> findByUserId(Long userId) {
-        return queryOne(BASE_SELECT + " WHERE user_id = ?", STUDENT_ROW, userId);
+        return queryOne(BASE_SELECT + " WHERE s.user_id = ?", STUDENT_ROW, userId);
     }
 
     /** Unique lookup by the university seat number. */
     public Optional<Student> findByUsn(String usn) {
-        return queryOne(BASE_SELECT + " WHERE usn = ?", STUDENT_ROW, usn);
+        return queryOne(BASE_SELECT + " WHERE s.usn = ?", STUDENT_ROW, usn);
     }
 
     /** Case-insensitive USN search used by the type-ahead box. */
     public List<Student> findByUsnLike(String usn) {
-        return query(BASE_SELECT + " WHERE LOWER(usn) LIKE ? ORDER BY usn LIMIT 20",
+        return query(BASE_SELECT + " WHERE LOWER(s.usn) LIKE ? ORDER BY s.usn LIMIT 20",
                 STUDENT_ROW, "%" + usn.toLowerCase() + "%");
     }
 
@@ -233,5 +267,48 @@ public class StudentRepository extends JdbcSupport
     public List<String> findDistinctDepartments() {
         return query("SELECT DISTINCT department FROM students ORDER BY department",
                 (rs, rowNum) -> str(rs, "department"));
+    }
+
+    /** All active students (administrator views). */
+    public List<Student> findAllActive() {
+        return query(BASE_SELECT + " WHERE s.status = 'ACTIVE' ORDER BY s.name ASC", STUDENT_ROW);
+    }
+
+    /** Students implicitly enrolled in a course via department + semester. */
+    public List<Student> findByDepartmentAndSemester(String department, int semester) {
+        return query(BASE_SELECT
+                        + " WHERE s.department = ? AND s.semester = ? AND s.status = 'ACTIVE'"
+                        + " ORDER BY s.name ASC",
+                STUDENT_ROW, department, semester);
+    }
+
+    /**
+     * Faculty visibility rule used by the Students page and academic profile
+     * picker: class teacher, mentor, or teacher of a subject in the student's
+     * department + semester.
+     */
+    public List<Student> findAccessibleByFaculty(Long facultyId) {
+        return query(BASE_SELECT
+                        + " WHERE s.status = 'ACTIVE' AND ("
+                        + "      s.class_teacher_id = ? OR s.mentor_id = ?"
+                        + "      OR EXISTS ("
+                        + "          SELECT 1 FROM courses c"
+                        + "          WHERE c.faculty_id = ?"
+                        + "            AND c.department = s.department"
+                        + "            AND c.semester = s.semester"
+                        + "            AND c.status = 'ACTIVE'"
+                        + "      ))"
+                        + " ORDER BY s.name ASC",
+                STUDENT_ROW, facultyId, facultyId, facultyId);
+    }
+
+    /** Administrator assignment of class teacher and mentor. */
+    public boolean assignClassTeacherMentor(Long studentId, Long classTeacherId, Long mentorId) {
+        return update("UPDATE students SET class_teacher_id = ?, mentor_id = ? WHERE id = ?",
+                classTeacherId, mentorId, studentId) > 0;
+    }
+
+    public long countActive() {
+        return queryForLong("SELECT COUNT(*) FROM students WHERE status = 'ACTIVE'");
     }
 }

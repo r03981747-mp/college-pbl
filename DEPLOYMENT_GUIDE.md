@@ -173,6 +173,42 @@ Demo accounts after loading the sample data:
 
 > Change these passwords before sharing the URL publicly.
 
+### Upgrading an existing database (marks, attendance, assignments, eligibility)
+
+If the database already contains the original 11 tables and you are adding the
+academic modules, do **not** reload `deploy_schema.sql` (it drops tables). Run
+the additive migration instead:
+
+```powershell
+& $mysql --ssl-mode=REQUIRED -h HOST -P 4000 -u 'PREFIX.USER' -p smart_campus_db `
+  < database/academic_migration.sql
+```
+
+The script is idempotent. It adds:
+
+- `students.class_teacher_id` and `students.mentor_id`
+- `academic_settings`, `assessments`, `student_marks`, `attendance`,
+  `assignments`, and `assignment_submissions`
+
+The Spring Boot application also runs this same script automatically at startup
+when it detects an older schema (`APP_DB_ACADEMIC_MIGRATION_ENABLED=true`, the
+default). Startup migration failures are logged without stopping the app, so an
+operator can still apply the SQL manually.
+
+After the schema exists, sign in as an administrator and open
+**Academics → Academic Setup** to configure the eligibility thresholds and
+assign class teachers/mentors. Sample academic records are optional; the demo
+seed contains them, but real deployments should not load demo data.
+
+### Assignment file storage
+
+Assignment files are deliberately stored outside the web root and are only
+served through authenticated endpoints such as
+`/api/assignments/submissions/{id}/file`. Set `APP_UPLOAD_DIRECTORY` to a
+persistent path in production. Vercel's container filesystem is ephemeral, so
+`/tmp/uploads` works for a demo but files disappear when an instance is
+replaced. Use a mounted volume or object storage for durable uploads.
+
 ---
 
 ## 4. Deploy to Vercel
@@ -306,7 +342,7 @@ A host can also override the API URL before `api.js` loads:
 | `Public Key Retrieval is not allowed` | Keep `allowPublicKeyRetrieval=true` in `SPRING_DATASOURCE_URL`. |
 | `Access denied for user` | Use the full `<userPrefix>.username`. Reset the SQL user's password in the TiDB console or with `ticloud serverless sql-user`. |
 | `Unknown database` | Create `smart_campus_db` first and use exactly that name in the JDBC URL. |
-| `Table doesn't exist` | Run `database/deploy_schema.sql`, then `database/deploy_sample_data.sql`. |
+| `Table doesn't exist` | For a new database, run `database/deploy_schema.sql`, then `database/deploy_sample_data.sql`. For an existing database missing academic tables, run `database/academic_migration.sql` (or let the app's startup migration do it). |
 | `SSL/TLS` handshake error | TiDB Cloud requires TLS on port 4000; keep `sslMode=REQUIRED` and do not use `useSSL=false`. |
 | Report download fails | Confirm `APP_EXPORT_DIRECTORY=/tmp/exports`. Vercel's filesystem is read-only except `/tmp`. |
 | First request is slow | Vercel container functions cold-start, and TiDB Starter can scale to zero. Wait a few seconds and retry. |
@@ -324,6 +360,8 @@ A host can also override the API URL before `api.js` loads:
 | `backend/Dockerfile` | Alternative standalone backend image for Railway or another container host. |
 | `database/deploy_schema.sql` | Creates tables in an existing managed MySQL-compatible database. |
 | `database/deploy_sample_data.sql` | Loads the demo users and records. |
+| `database/academic_migration.sql` | Additive upgrade for databases created before marks, attendance, assignments and eligibility existed. |
+| `backend/src/main/resources/db/academic_migration.sql` | Classpath copy used by the automatic startup migration. |
 | `.env.example` | Names and example values for the Vercel environment variables. |
 | `.dockerignore`, `.vercelignore` | Keeps build artifacts, logs, and secrets out of deployment uploads. |
 

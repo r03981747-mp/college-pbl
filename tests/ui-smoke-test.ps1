@@ -58,6 +58,12 @@ $pages = [ordered]@{
     "activities"   = "Add activity"
     "bookings"     = "New booking|Add booking"
     "reports"      = "report-card|Preview|Export"
+    "marks"        = "My Marks|Marks Management"
+    "attendance"   = "My Attendance|Attendance Register"
+    "assignments"  = "My Assignments|Assignments Management"
+    "profile"      = "My Academic Profile|Student Academic Profiles"
+    "eligibility"  = "My Eligibility|Student Eligibility"
+    "academic-settings" = "Eligibility rules|Administrator access required"
     "users"        = "Add account"
     "settings"     = "password"
 }
@@ -124,9 +130,11 @@ function Find-JsError([string]$dom, [string]$log) {
 
 # is the page's own "you do not have access" panel actually visible?
 function Test-Denied([string]$dom) {
-    $m = [regex]::Match($dom, '<div id="accessDenied"([^>]*)>')
-    if (-not $m.Success) { return $false }
-    return ($m.Groups[1].Value -notmatch '\bd-none\b')
+    foreach ($id in @('accessDenied', 'settingsDenied')) {
+        $m = [regex]::Match($dom, '<div id="' + $id + '"([^>]*)>')
+        if ($m.Success -and $m.Groups[1].Value -notmatch '\bd-none\b') { return $true }
+    }
+    return $false
 }
 
 # role -> pages that MUST be denied (UI half of the authorisation matrix).
@@ -134,8 +142,8 @@ function Test-Denied([string]$dom) {
 # NOTE: students.html is NOT denied for STUDENT - students.read means
 # "personal, read-only view", so the page renders their own record.
 $expectedDeny = @{
-    "student" = @("faculty", "users", "reports")
-    "faculty" = @("users")
+    "student" = @("faculty", "users", "reports", "academic-settings")
+    "faculty" = @("users", "academic-settings")
 }
 
 # role|page -> alternative content marker (the page shows something other than

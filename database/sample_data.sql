@@ -16,6 +16,12 @@ USE smart_campus_db;
 
 -- Preserve referential integrity while loading independent tables.
 SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE assignment_submissions;
+TRUNCATE TABLE assignments;
+TRUNCATE TABLE attendance;
+TRUNCATE TABLE student_marks;
+TRUNCATE TABLE assessments;
+TRUNCATE TABLE academic_settings;
 TRUNCATE TABLE activity_logs;
 TRUNCATE TABLE bookings;
 TRUNCATE TABLE activities;
@@ -55,19 +61,19 @@ INSERT INTO faculty (id, employee_id, name, email, phone, department, designatio
 -- -------------------------------------------------------------------------------------
 -- STUDENTS
 -- -------------------------------------------------------------------------------------
-INSERT INTO students (id, usn, name, email, phone, gender, date_of_birth, department, semester, section, address, admission_year, status, user_id) VALUES
-(1,'1CS21CS001','Rahul Kumar','student@smartcampus.com','9008001001','MALE','2003-05-14','Computer Science',5,'A','42, MG Road, Bengaluru',2021,'ACTIVE',3),
-(2,'1CS21CS002','Deepika Nair','deepika.n@smartcampus.com','9008001002','FEMALE','2003-09-02','Computer Science',5,'A','12, Jayanagar, Bengaluru',2021,'ACTIVE',5),
-(3,'1CS21CS003','Arjun Singh','arjun.s@smartcampus.com','9008001003','MALE','2002-12-21','Computer Science',5,'B','7, Indiranagar, Bengaluru',2021,'ACTIVE',6),
-(4,'1CS22CS014','Fatima Begum','fatima.b@smartcampus.com','9008001004','FEMALE','2004-03-11','Computer Science',3,'A','88, Shivajinagar, Pune',2022,'ACTIVE',NULL),
-(5,'1CS23CS021','Karthik Reddy','karthik.r@smartcampus.com','9008001005','MALE','2005-07-30','Computer Science',1,'A','5, Whitefield, Bengaluru',2023,'ACTIVE',NULL),
-(6,'1EC21EC007','Sneha Patil','sneha.p@smartcampus.com','9008001006','FEMALE','2003-01-19','Electronics & Communication',5,'A','31, Malleswaram, Bengaluru',2021,'ACTIVE',NULL),
-(7,'1EC22EC012','Rohit Verma','rohit.v@smartcampus.com','9008001007','MALE','2004-06-08','Electronics & Communication',3,'B','19, Rajajinagar, Bengaluru',2022,'ACTIVE',NULL),
-(8,'1ME21ME004','Ananya Desai','ananya.d@smartcampus.com','9008001008','FEMALE','2003-11-05','Mechanical Engineering',5,'A','64, Basavanagudi, Bengaluru',2021,'ACTIVE',NULL),
-(9,'1ME23ME019','Imran Khan','imran.k@smartcampus.com','9008001009','MALE','2005-02-17','Mechanical Engineering',1,'B','9, Koramangala, Bengaluru',2023,'ACTIVE',NULL),
-(10,'1IT21IT005','Pooja Gowda','pooja.g@smartcampus.com','9008001010','FEMALE','2003-08-25','Information Technology',5,'A','27, Hebbal, Bengaluru',2021,'ACTIVE',NULL),
-(11,'1IT22IT011','Naveen Kumar','naveen.k@smartcampus.com','9008001011','MALE','2004-04-13','Information Technology',3,'A','3, Jayanagar, Bengaluru',2022,'INACTIVE',NULL),
-(12,'1CS20CS002','Shreya Rao','shreya.r@smartcampus.com','9008001012','FEMALE','2002-10-09','Computer Science',8,'A','55, Adugodi, Bengaluru',2020,'COMPLETED',NULL);
+INSERT INTO students (id, usn, name, email, phone, gender, date_of_birth, department, semester, section, address, admission_year, status, user_id, class_teacher_id, mentor_id) VALUES
+(1,'1CS21CS001','Rahul Kumar','student@smartcampus.com','9008001001','MALE','2003-05-14','Computer Science',5,'A','42, MG Road, Bengaluru',2021,'ACTIVE',3,1,2),
+(2,'1CS21CS002','Deepika Nair','deepika.n@smartcampus.com','9008001002','FEMALE','2003-09-02','Computer Science',5,'A','12, Jayanagar, Bengaluru',2021,'ACTIVE',5,1,2),
+(3,'1CS21CS003','Arjun Singh','arjun.s@smartcampus.com','9008001003','MALE','2002-12-21','Computer Science',5,'B','7, Indiranagar, Bengaluru',2021,'ACTIVE',6,2,1),
+(4,'1CS22CS014','Fatima Begum','fatima.b@smartcampus.com','9008001004','FEMALE','2004-03-11','Computer Science',3,'A','88, Shivajinagar, Pune',2022,'ACTIVE',NULL,2,1),
+(5,'1CS23CS021','Karthik Reddy','karthik.r@smartcampus.com','9008001005','MALE','2005-07-30','Computer Science',1,'A','5, Whitefield, Bengaluru',2023,'ACTIVE',NULL,1,2),
+(6,'1EC21EC007','Sneha Patil','sneha.p@smartcampus.com','9008001006','FEMALE','2003-01-19','Electronics & Communication',5,'A','31, Malleswaram, Bengaluru',2021,'ACTIVE',NULL,4,NULL),
+(7,'1EC22EC012','Rohit Verma','rohit.v@smartcampus.com','9008001007','MALE','2004-06-08','Electronics & Communication',3,'B','19, Rajajinagar, Bengaluru',2022,'ACTIVE',NULL,4,NULL),
+(8,'1ME21ME004','Ananya Desai','ananya.d@smartcampus.com','9008001008','FEMALE','2003-11-05','Mechanical Engineering',5,'A','64, Basavanagudi, Bengaluru',2021,'ACTIVE',NULL,5,NULL),
+(9,'1ME23ME019','Imran Khan','imran.k@smartcampus.com','9008001009','MALE','2005-02-17','Mechanical Engineering',1,'B','9, Koramangala, Bengaluru',2023,'ACTIVE',NULL,5,NULL),
+(10,'1IT21IT005','Pooja Gowda','pooja.g@smartcampus.com','9008001010','FEMALE','2003-08-25','Information Technology',5,'A','27, Hebbal, Bengaluru',2021,'ACTIVE',NULL,6,NULL),
+(11,'1IT22IT011','Naveen Kumar','naveen.k@smartcampus.com','9008001011','MALE','2004-04-13','Information Technology',3,'A','3, Jayanagar, Bengaluru',2022,'INACTIVE',NULL,6,NULL),
+(12,'1CS20CS002','Shreya Rao','shreya.r@smartcampus.com','9008001012','FEMALE','2002-10-09','Computer Science',8,'A','55, Adugodi, Bengaluru',2020,'COMPLETED',NULL,NULL,NULL);
 
 -- -------------------------------------------------------------------------------------
 -- COURSES   (faculty_id -> faculty.id)
@@ -83,6 +89,117 @@ INSERT INTO courses (id, course_code, course_name, department, semester, credits
 (8,'ME501','Applied Thermodynamics','Mechanical Engineering',5,4,5,'Laws of thermodynamics, cycles, entropy and power plants.', 'ACTIVE'),
 (9,'IT501','Web Technologies','Information Technology',5,3,6,'HTML5, CSS3, JavaScript, REST APIs and responsive design.', 'ACTIVE'),
 (10,'IT301','Python Programming','Information Technology',3,4,6,'Core Python, functions, OOP, modules and file handling.', 'ACTIVE');
+
+-- -------------------------------------------------------------------------------------
+-- ACADEMIC SETTINGS (demo thresholds - administrators can change these in Academic Setup)
+-- -------------------------------------------------------------------------------------
+INSERT INTO academic_settings
+    (id, min_attendance_percentage, min_marks_percentage, min_assessments_required,
+     min_attendance_records, require_marks, require_attendance, late_counts_as_present,
+     rules_configured, updated_by_user_id)
+VALUES
+    (1, 75.00, 40.00, 1, 1, TRUE, TRUE, TRUE, TRUE, 1);
+
+-- -------------------------------------------------------------------------------------
+-- ASSESSMENTS (published rows are visible to students; draft row demonstrates the workflow)
+-- -------------------------------------------------------------------------------------
+INSERT INTO assessments
+    (id, course_id, title, assessment_type, term, max_score, weight, assessment_date,
+     published, created_by_faculty_id)
+VALUES
+    (1, 1, 'Quiz 1', 'QUIZ', '2026-ODD', 10.00, 10.00, '2026-09-12', TRUE, 1),
+    (2, 1, 'Midterm Examination', 'MIDTERM', '2026-ODD', 50.00, 40.00, '2026-10-05', TRUE, 1),
+    (3, 1, 'Assignment 1', 'ASSIGNMENT', '2026-ODD', 20.00, 20.00, '2026-10-20', TRUE, 1),
+    (4, 1, 'Internal Test 2', 'OTHER', '2026-ODD', 25.00, 15.00, '2026-11-12', FALSE, 1),
+    (5, 2, 'Quiz 1', 'QUIZ', '2026-ODD', 10.00, 10.00, '2026-09-15', TRUE, 2),
+    (6, 2, 'Midterm Examination', 'MIDTERM', '2026-ODD', 50.00, 40.00, '2026-10-07', TRUE, 2),
+    (7, 3, 'Quiz 1', 'QUIZ', '2026-ODD', 10.00, 10.00, '2026-09-18', TRUE, 1),
+    (8, 3, 'Midterm Examination', 'MIDTERM', '2026-ODD', 50.00, 40.00, '2026-10-09', TRUE, 1);
+
+-- -------------------------------------------------------------------------------------
+-- STUDENT MARKS (student 1 = strong, student 2 = borderline, student 3 = low)
+-- -------------------------------------------------------------------------------------
+INSERT INTO student_marks (assessment_id, student_id, score, remarks, entered_by_faculty_id) VALUES
+    (1, 1, 8.00,  'Good understanding of complexity analysis.', 1),
+    (2, 1, 42.00, 'Well structured answers.', 1),
+    (3, 1, 18.00, 'Complete implementation and clear report.', 1),
+    (5, 1, 9.00,  'Accurate scheduling answers.', 2),
+    (6, 1, 45.00, 'Excellent attempt.', 2),
+    (7, 1, 7.00,  'ER model is correct.', 1),
+    (8, 1, 38.00, 'Normalisation answers need more detail.', 1),
+    (1, 2, 6.00,  'Basic concepts are clear.', 1),
+    (2, 2, 30.00, 'Some long answers incomplete.', 1),
+    (3, 2, 15.00, 'Report is acceptable.', 1),
+    (5, 2, 7.00,  'Good attempt.', 2),
+    (6, 2, 33.00, 'Revise deadlock detection.', 2),
+    (7, 2, 5.00,  'Needs more practice with keys.', 1),
+    (8, 2, 28.00, 'Normalisation needs revision.', 1),
+    (1, 3, 4.00,  'Revise asymptotic notation.', 1),
+    (2, 3, 22.00, 'Several questions left blank.', 1),
+    (3, 3, 12.00, 'Partial implementation.', 1),
+    (5, 3, 5.00,  'Revise process synchronisation.', 2),
+    (6, 3, 25.00, 'Needs improvement.', 2),
+    (7, 3, 3.00,  'Revise relational algebra.', 1),
+    (8, 3, 20.00, 'Normalisation answers incomplete.', 1);
+
+-- -------------------------------------------------------------------------------------
+-- ATTENDANCE (8 sessions x 3 subjects x 3 demo students)
+--   student 1: 100% attended (one late counts as present)
+--   student 2: 87.5% attended
+--   student 3: 62.5% attended - demonstrates Not eligible
+-- -------------------------------------------------------------------------------------
+INSERT INTO attendance
+    (student_id, course_id, attendance_date, status, remarks, marked_by_faculty_id)
+SELECT s.id, c.id, d.dt,
+       CASE
+           WHEN s.id = 1 AND c.id = 2 AND d.dt = '2026-10-12' THEN 'ABSENT'
+           WHEN s.id = 1 AND d.dt = '2026-10-07' THEN 'LATE'
+           WHEN s.id = 2 AND c.id = 1 AND d.dt = '2026-10-14' THEN 'ABSENT'
+           WHEN s.id = 2 AND d.dt = '2026-10-05' THEN 'LATE'
+           WHEN s.id = 3 AND d.dt IN ('2026-10-05','2026-10-12','2026-10-19') THEN 'ABSENT'
+           WHEN s.id = 3 AND d.dt = '2026-09-28' THEN 'LATE'
+           ELSE 'PRESENT'
+       END,
+       NULL, c.faculty_id
+FROM students s
+JOIN courses c
+  ON c.department = s.department
+ AND c.semester = s.semester
+ AND c.id IN (1, 2, 3)
+CROSS JOIN (
+    SELECT DATE('2026-09-21') AS dt UNION ALL
+    SELECT DATE('2026-09-23') UNION ALL
+    SELECT DATE('2026-09-28') UNION ALL
+    SELECT DATE('2026-10-05') UNION ALL
+    SELECT DATE('2026-10-07') UNION ALL
+    SELECT DATE('2026-10-12') UNION ALL
+    SELECT DATE('2026-10-14') UNION ALL
+    SELECT DATE('2026-10-19')
+) d
+WHERE s.id IN (1, 2, 3);
+
+-- -------------------------------------------------------------------------------------
+-- ASSIGNMENTS (files are never stored in this table; submissions live in the upload area)
+-- -------------------------------------------------------------------------------------
+INSERT INTO assignments
+    (id, course_id, title, instructions, due_at, allowed_file_types, max_file_size_mb,
+     max_score, allow_late, allow_resubmission, published, created_by_faculty_id)
+VALUES
+    (1, 1, 'DSA Lab Report',
+     'Submit a PDF or Word report for the graph traversal lab. Include your implementation approach, test cases and complexity analysis.',
+     '2026-11-10 23:59:00', 'pdf,doc,docx', 10, 20.00, TRUE, TRUE, TRUE, 1),
+    (2, 1, 'Algorithm Analysis Sheet',
+     'Solve the five algorithm-analysis problems shared in class. Upload a single PDF or Word document.',
+     '2026-10-20 17:00:00', 'pdf,doc,docx', 10, 10.00, FALSE, FALSE, TRUE, 1),
+    (3, 2, 'OS Scheduling Case Study',
+     'Compare FCFS, SJF and Round Robin for the supplied workload. Submit a PDF report with your calculations.',
+     '2026-11-15 23:59:00', 'pdf,doc,docx', 10, 20.00, TRUE, FALSE, TRUE, 2),
+    (4, 3, 'ER Diagram Design',
+     'Design an ER diagram for the campus library and convert it into relational tables. Submit a PDF with the diagram and assumptions.',
+     '2026-11-05 17:00:00', 'pdf,doc,docx,png,jpg', 10, 15.00, TRUE, TRUE, TRUE, 1),
+    (5, 1, 'DSA Revision Quiz',
+     'Draft assignment - publish it when the class is ready.',
+     '2026-11-20 23:59:00', 'pdf', 5, 10.00, TRUE, FALSE, FALSE, 1);
 
 -- -------------------------------------------------------------------------------------
 -- CLASSROOMS

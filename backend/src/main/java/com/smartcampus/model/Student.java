@@ -25,6 +25,14 @@ public class Student extends Person {
     private StudentStatus status;
     private Long userId;
 
+    /** Faculty member assigned as the student's class teacher (nullable). */
+    private Long classTeacherId;
+    private String classTeacherName;
+
+    /** Faculty member assigned as the student's mentor (nullable). */
+    private Long mentorId;
+    private String mentorName;
+
     /** No-argument constructor (Jackson / JDBC row mapping). */
     public Student() {
         super();
@@ -146,6 +154,38 @@ public class Student extends Person {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public Long getClassTeacherId() {
+        return classTeacherId;
+    }
+
+    public void setClassTeacherId(Long classTeacherId) {
+        this.classTeacherId = classTeacherId;
+    }
+
+    public String getClassTeacherName() {
+        return classTeacherName;
+    }
+
+    public void setClassTeacherName(String classTeacherName) {
+        this.classTeacherName = classTeacherName;
+    }
+
+    public Long getMentorId() {
+        return mentorId;
+    }
+
+    public void setMentorId(Long mentorId) {
+        this.mentorId = mentorId;
+    }
+
+    public String getMentorName() {
+        return mentorName;
+    }
+
+    public void setMentorName(String mentorName) {
+        this.mentorName = mentorName;
     }
 
     @Override

@@ -46,6 +46,18 @@ public final class Permissions {
 
     public static final String REPORTS_READ = "reports.read";
 
+    public static final String MARKS_READ = "marks.read";
+    public static final String MARKS_WRITE = "marks.write";
+    public static final String ATTENDANCE_READ = "attendance.read";
+    public static final String ATTENDANCE_WRITE = "attendance.write";
+    public static final String ASSIGNMENTS_READ = "assignments.read";
+    public static final String ASSIGNMENTS_WRITE = "assignments.write";
+    public static final String ASSIGNMENTS_SUBMIT = "assignments.submit";
+    public static final String ELIGIBILITY_READ = "eligibility.read";
+    public static final String ACADEMIC_CONFIG_READ = "academicConfig.read";
+    public static final String ACADEMIC_CONFIG_WRITE = "academicConfig.write";
+    public static final String PROFILE_READ = "profile.read";
+
     public static final String USERS_READ = "users.read";
     public static final String USERS_WRITE = "users.write";
 
@@ -63,6 +75,11 @@ public final class Permissions {
             ACTIVITIES_READ, ACTIVITIES_WRITE,
             BOOKINGS_READ, BOOKINGS_READ_ALL, BOOKINGS_WRITE, BOOKINGS_APPROVE,
             REPORTS_READ,
+            MARKS_READ, MARKS_WRITE,
+            ATTENDANCE_READ, ATTENDANCE_WRITE,
+            ASSIGNMENTS_READ, ASSIGNMENTS_WRITE, ASSIGNMENTS_SUBMIT,
+            ELIGIBILITY_READ, ACADEMIC_CONFIG_READ, ACADEMIC_CONFIG_WRITE,
+            PROFILE_READ,
             USERS_READ, USERS_WRITE,
             SETTINGS_READ, SETTINGS_WRITE);
 
@@ -101,6 +118,15 @@ public final class Permissions {
                 granted.add(BOOKINGS_WRITE);
                 granted.add(BOOKINGS_APPROVE);
                 granted.add(REPORTS_READ);
+                granted.add(MARKS_READ);
+                granted.add(MARKS_WRITE);
+                granted.add(ATTENDANCE_READ);
+                granted.add(ATTENDANCE_WRITE);
+                granted.add(ASSIGNMENTS_READ);
+                granted.add(ASSIGNMENTS_WRITE);
+                granted.add(ELIGIBILITY_READ);
+                granted.add(ACADEMIC_CONFIG_READ);
+                granted.add(PROFILE_READ);
             }
 
             case STUDENT -> {
@@ -113,6 +139,13 @@ public final class Permissions {
                 granted.add(ACTIVITIES_READ);
                 granted.add(BOOKINGS_READ);
                 granted.add(BOOKINGS_WRITE);
+                granted.add(MARKS_READ);
+                granted.add(ATTENDANCE_READ);
+                granted.add(ASSIGNMENTS_READ);
+                granted.add(ASSIGNMENTS_SUBMIT);
+                granted.add(ELIGIBILITY_READ);
+                granted.add(ACADEMIC_CONFIG_READ);
+                granted.add(PROFILE_READ);
                 granted.add(SETTINGS_WRITE);   // students may change their own password
             }
         }

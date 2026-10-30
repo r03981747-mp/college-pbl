@@ -45,9 +45,9 @@ foreach ($p in $pages) {
 
 $assets = @(
     "css/style.css", "css/dashboard.css", "css/responsive.css", "css/theme.css",
-    "css/login3d.css", "css/lightcord.css",
+    "css/login3d.css", "css/lightcord.css", "css/academic.css",
     "js/api.js", "js/common.js", "js/auth.js", "js/shell.js", "js/theme.js",
-    "js/login.js", "js/lightcord.js"
+    "js/login.js", "js/lightcord.js", "js/academic.js"
 )
 foreach ($a in $assets) {
     Check ("asset " + $a) (Test-Path (Join-Path $root $a))
@@ -90,7 +90,11 @@ foreach ($p in $pages) {
     # ids created at runtime by the script itself (template strings) count too
     $ids  += [regex]::Matches($js, "id=[`"`']([^`"`']+)[`"`']") | ForEach-Object { $_.Groups[1].Value }
     $ids   = @($ids | Sort-Object -Unique)
-    $used  = [regex]::Matches($js, "getElementById\('([^']+)'\)") | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+    $used  = @()
+    $used += [regex]::Matches($js, "getElementById\('([^']+)'\)") | ForEach-Object { $_.Groups[1].Value }
+    # new academic modules use the local $('id') shortcut
+    $used += [regex]::Matches($js, '\$\(\s*''([^'']+)''\s*\)') | ForEach-Object { $_.Groups[1].Value }
+    $used  = @($used | Sort-Object -Unique)
     $miss  = @($used | Where-Object { $ids -notcontains $_ })
 
     Check ($p.BaseName + " DOM ids") ($miss.Count -eq 0) `

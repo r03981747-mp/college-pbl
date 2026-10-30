@@ -24,6 +24,56 @@ function Call($method, $path, $headers, $body) {
   }
 }
 function Json($r) { try { return ($r.body | ConvertFrom-Json) } catch { return $null } }
+function TokenOf($headers) {
+  if (-not $headers -or -not $headers.Authorization) { return $null }
+  return ($headers.Authorization -replace '^Bearer\s+', '')
+}
+function UploadFile($path, $headers, $filePath, $contentType) {
+  Add-Type -AssemblyName System.Net.Http -ErrorAction SilentlyContinue
+  $client = New-Object System.Net.Http.HttpClient
+  try {
+    $token = TokenOf $headers
+    if ($token) {
+      $client.DefaultRequestHeaders.Authorization =
+        New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $token)
+    }
+    $content = New-Object System.Net.Http.MultipartFormDataContent
+    try {
+      $bytes = [System.IO.File]::ReadAllBytes($filePath)
+      $fileContent = New-Object System.Net.Http.ByteArrayContent(,$bytes)
+      $fileContent.Headers.ContentType =
+        [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse($contentType)
+      $content.Add($fileContent, "file", [System.IO.Path]::GetFileName($filePath))
+      $response = $client.PostAsync("$base$path", $content).Result
+      $text = $response.Content.ReadAsStringAsync().Result
+      return @{ code = [int]$response.StatusCode; body = $text }
+    } finally {
+      $content.Dispose()
+    }
+  } catch {
+    return @{ code = 0; body = $_.Exception.Message }
+  } finally {
+    $client.Dispose()
+  }
+}
+function DownloadFile($path, $headers) {
+  Add-Type -AssemblyName System.Net.Http -ErrorAction SilentlyContinue
+  $client = New-Object System.Net.Http.HttpClient
+  try {
+    $token = TokenOf $headers
+    if ($token) {
+      $client.DefaultRequestHeaders.Authorization =
+        New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $token)
+    }
+    $response = $client.GetAsync("$base$path").Result
+    $bytes = $response.Content.ReadAsByteArrayAsync().Result
+    return @{ code = [int]$response.StatusCode; length = $bytes.Length }
+  } catch {
+    return @{ code = 0; length = 0; body = $_.Exception.Message }
+  } finally {
+    $client.Dispose()
+  }
+}
 
 # ---------------------------------------------------------------- AUTH
 Section "AUTH"
@@ -225,6 +275,290 @@ $j = Json $r
 Check "list users" ($r.code -eq 200) ("total=" + $j.data.totalElements)
 $hasPassword = ($r.body -match '"password"')
 Check "password hash never serialized" (-not $hasPassword) "no password field"
+
+# ---------------------------------------------------------------- ACADEMIC READS + AUTHORIZATION
+Section "ACADEMIC READS / ROLE SCOPE"
+$allCourses = (Json (Call "GET" "/academics/courses" $admin $null)).data
+$facultyCourses = (Json (Call "GET" "/academics/courses" $faculty $null)).data
+$studentCourses = (Json (Call "GET" "/academics/courses" $student $null)).data
+Check "admin sees all subjects" ($allCourses.Count -gt 0) ("subjects=" + $allCourses.Count)
+Check "faculty sees only managed subjects" ($facultyCourses.Count -gt 0 -and $facultyCourses.Count -le $allCourses.Count) ("subjects=" + $facultyCourses.Count)
+Check "student sees only enrolled subjects" ($studentCourses.Count -gt 0 -and $studentCourses.Count -lt $allCourses.Count) ("subjects=" + $studentCourses.Count)
+
+$studentProfile = (Json (Call "GET" "/academics/profile/me" $student $null)).data
+$studentId = $studentProfile.student.id
+Check "student own profile" ($studentProfile.student -and $studentId) ("studentId=" + $studentId)
+$r = Call "GET" "/academics/eligibility/me" $student $null
+$studentEligibility = (Json $r).data
+Check "student own eligibility" ($r.code -eq 200 -and $studentEligibility.status) ($studentEligibility.status + " / " + $studentEligibility.summary)
+Check "eligibility explains checks" ($studentEligibility.checks.Count -gt 0) ("checks=" + $studentEligibility.checks.Count)
+$r = Call "GET" "/marks/my" $student $null
+Check "student own marks" ($r.code -eq 200 -and (Json $r).data.courses) ("subjects=" + (Json $r).data.courses.Count)
+$r = Call "GET" "/attendance/my" $student $null
+Check "student own attendance" ($r.code -eq 200 -and (Json $r).data.courses) ("subjects=" + (Json $r).data.courses.Count)
+
+$r = Call "GET" "/academics/students" $student $null
+$studentList = (Json $r).data
+Check "student student-list scoped to self" ($r.code -eq 200 -and $studentList.Count -eq 1 -and $studentList[0].student.id -eq $studentId) ("rows=" + $studentList.Count)
+$adminStudents = (Json (Call "GET" "/academics/students" $admin $null)).data
+$otherStudent = $adminStudents | Where-Object { $_.student.id -ne $studentId } | Select-Object -First 1
+if ($otherStudent) {
+  $r = Call "GET" ("/academics/students/" + $otherStudent.student.id + "/profile") $student $null
+  Check "student cannot read another profile -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+}
+$r = Call "GET" "/academics/students" $faculty $null
+Check "faculty student-list scoped" ($r.code -eq 200 -and (Json $r).data.Count -gt 0) ("rows=" + (Json $r).data.Count)
+$r = Call "GET" "/academics/eligibility/students" $faculty $null
+Check "faculty eligibility list" ($r.code -eq 200) ("rows=" + (Json $r).data.Count)
+
+$unassignedCourse = $allCourses | Where-Object { $_.id -notin @($facultyCourses | ForEach-Object { $_.id }) } | Select-Object -First 1
+if ($unassignedCourse) {
+  $r = Call "GET" ("/attendance/sheet?courseId=" + $unassignedCourse.id + "&date=2026-09-21") $faculty $null
+  Check "faculty cannot read unassigned attendance -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+  $badAssessment = '{"courseId":' + $unassignedCourse.id + ',"title":"Unauthorized smoke","assessmentType":"QUIZ","term":"2026-SMOKE","maxScore":10,"published":false}'
+  $r = Call "POST" "/marks/assessments" $faculty $badAssessment
+  Check "faculty cannot create assessment in unassigned subject -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+  $badAssignment = '{"courseId":' + $unassignedCourse.id + ',"title":"Unauthorized smoke","instructions":"x","dueAt":"2030-01-01T23:59:00","allowedFileTypes":"txt","maxFileSizeMb":1,"maxScore":10,"allowLate":false,"allowResubmission":false,"published":false}'
+  $r = Call "POST" "/assignments" $faculty $badAssignment
+  Check "faculty cannot create assignment in unassigned subject -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+}
+
+# ---------------------------------------------------------------- SETTINGS
+Section "ELIGIBILITY SETTINGS (admin write / role denial)"
+$r = Call "GET" "/academics/settings" $admin $null
+$originalSettings = (Json $r).data
+Check "read eligibility settings" ($r.code -eq 200 -and $originalSettings) ("rulesConfigured=" + $originalSettings.rulesConfigured)
+$modifiedSettings = @{
+  minAttendancePercentage = 80
+  minMarksPercentage = 45
+  minAssessmentsRequired = 2
+  minAttendanceRecords = 2
+  requireMarks = $true
+  requireAttendance = $true
+  lateCountsAsPresent = $true
+} | ConvertTo-Json -Compress
+$r = Call "PUT" "/academics/settings" $admin $modifiedSettings
+$savedSettings = (Json $r).data
+Check "admin updates settings" ($r.code -eq 200 -and $savedSettings.rulesConfigured -eq $true) ("attendance=" + $savedSettings.minAttendancePercentage)
+$r = Call "GET" "/academics/settings" $student $null
+Check "student can read rules" ($r.code -eq 200) ("minMarks=" + (Json $r).data.minMarksPercentage)
+$r = Call "PUT" "/academics/settings" $student $modifiedSettings
+Check "student cannot update rules -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+$r = Call "PUT" "/academics/settings" $admin '{"minAttendancePercentage":-1,"minMarksPercentage":45,"minAssessmentsRequired":2,"minAttendanceRecords":2,"requireMarks":true,"requireAttendance":true,"lateCountsAsPresent":true}'
+Check "invalid attendance threshold -> 400" ($r.code -eq 400) ((Json $r).message)
+$restoreSettings = @{
+  minAttendancePercentage = $originalSettings.minAttendancePercentage
+  minMarksPercentage = $originalSettings.minMarksPercentage
+  minAssessmentsRequired = $originalSettings.minAssessmentsRequired
+  minAttendanceRecords = $originalSettings.minAttendanceRecords
+  requireMarks = $originalSettings.requireMarks
+  requireAttendance = $originalSettings.requireAttendance
+  lateCountsAsPresent = $originalSettings.lateCountsAsPresent
+} | ConvertTo-Json -Compress
+$r = Call "PUT" "/academics/settings" $admin $restoreSettings
+Check "restore original settings" ($r.code -eq 200) ("attendance=" + (Json $r).data.minAttendancePercentage)
+
+# ---------------------------------------------------------------- MENTOR ASSIGNMENT
+Section "CLASS TEACHER / MENTOR ASSIGNMENT"
+$r = Call "GET" "/academics/faculty-options" $admin $null
+$facultyOptions = (Json $r).data
+Check "admin faculty options" ($r.code -eq 200 -and $facultyOptions.Count -gt 0) ("faculty=" + $facultyOptions.Count)
+$r = Call "GET" "/academics/faculty-options" $faculty $null
+Check "faculty cannot list admin faculty options -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+$target = $adminStudents | Where-Object { $_.student.id -eq $studentId } | Select-Object -First 1
+if ($target -and $facultyOptions.Count) {
+  $newTeacher = $facultyOptions | Where-Object { $_.id -ne $target.student.classTeacherId } | Select-Object -First 1
+  if (-not $newTeacher) { $newTeacher = $facultyOptions[0] }
+  $newMentor = $facultyOptions | Where-Object { $_.id -ne $target.student.mentorId -and $_.id -ne $newTeacher.id } | Select-Object -First 1
+  if (-not $newMentor) { $newMentor = $newTeacher }
+  $assignBody = @{ classTeacherId = $newTeacher.id; mentorId = $newMentor.id } | ConvertTo-Json -Compress
+  $r = Call "PUT" ("/academics/students/" + $studentId + "/mentors") $admin $assignBody
+  $assigned = (Json $r).data
+  Check "admin assigns class teacher + mentor" ($r.code -eq 200 -and $assigned.classTeacherId -eq $newTeacher.id -and $assigned.mentorId -eq $newMentor.id) ("teacher=" + $assigned.classTeacherName + ", mentor=" + $assigned.mentorName)
+  $r = Call "PUT" ("/academics/students/" + $studentId + "/mentors") $faculty $assignBody
+  Check "faculty cannot assign mentors -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+  $restoreMentors = @{ classTeacherId = $target.student.classTeacherId; mentorId = $target.student.mentorId } | ConvertTo-Json -Compress
+  $r = Call "PUT" ("/academics/students/" + $studentId + "/mentors") $admin $restoreMentors
+  Check "restore original mentors" ($r.code -eq 200) ("teacher=" + (Json $r).data.classTeacherName)
+}
+
+# ---------------------------------------------------------------- MARKS
+Section "MARKS + PUBLICATION WORKFLOW"
+$smokeTitle = "SMOKE-MARKS-" + (Get-Random -Maximum 99999)
+$assessmentBody = @{
+  courseId = 1
+  title = $smokeTitle
+  assessmentType = "QUIZ"
+  term = "2026-SMOKE"
+  maxScore = 10
+  weight = 5
+  assessmentDate = "2026-10-29"
+  published = $false
+} | ConvertTo-Json -Compress
+$r = Call "POST" "/marks/assessments" $faculty $assessmentBody
+$assessment = (Json $r).data
+Check "faculty creates assessment" ($r.code -eq 201 -and $assessment.id) ("id=" + $assessment.id)
+$assessmentId = $assessment.id
+$r = Call "GET" "/marks/assessments" $student $null
+$studentAssessments = (Json $r).data
+Check "draft assessment hidden from student" (-not ($studentAssessments | Where-Object { $_.id -eq $assessmentId })) ("student assessments=" + $studentAssessments.Count)
+$r = Call "GET" ("/marks/assessments/" + $assessmentId + "/sheet") $faculty $null
+$sheet = (Json $r).data
+Check "faculty marks sheet" ($r.code -eq 200 -and $sheet.marks.Count -gt 0) ("rows=" + $sheet.marks.Count)
+$markRow = $sheet.marks | Where-Object { $_.studentId -eq $studentId } | Select-Object -First 1
+if (-not $markRow) { $markRow = $sheet.marks[0] }
+$markBody = @{ marks = @(@{ studentId = $markRow.studentId; score = 9; remarks = "Smoke mark" }) } | ConvertTo-Json -Compress
+$r = Call "PUT" ("/marks/assessments/" + $assessmentId + "/marks") $faculty $markBody
+$savedSheet = (Json $r).data
+$savedMark = $savedSheet.marks | Where-Object { $_.studentId -eq $markRow.studentId } | Select-Object -First 1
+Check "faculty saves marks" ($r.code -eq 200 -and $savedMark.score -eq 9) ("score=" + $savedMark.score)
+$r = Call "PUT" ("/marks/assessments/" + $assessmentId + "/marks") $faculty ('{"marks":[{"studentId":' + $markRow.studentId + ',"score":11}]}')
+Check "score above maximum -> 400" ($r.code -eq 400) ((Json $r).message)
+$r = Call "GET" "/marks/my" $student $null
+Check "draft marks hidden from student" (-not ((Json $r).data.marks | Where-Object { $_.assessmentId -eq $assessmentId })) "no draft mark"
+$r = Call "PUT" ("/marks/assessments/" + $assessmentId + "/publish?published=true") $faculty $null
+Check "faculty publishes assessment" ($r.code -eq 200 -and (Json $r).data.published -eq $true) ("HTTP " + $r.code)
+$r = Call "GET" "/marks/my" $student $null
+$publishedMark = (Json $r).data.marks | Where-Object { $_.assessmentId -eq $assessmentId } | Select-Object -First 1
+Check "student sees published mark" ($r.code -eq 200 -and $publishedMark -and $publishedMark.score -eq 9) ("score=" + $publishedMark.score)
+$r = Call "POST" "/marks/assessments" $student $assessmentBody
+Check "student cannot create assessment -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+$r = Call "GET" ("/marks/assessments/" + $assessmentId + "/sheet") $student $null
+Check "student cannot read marks sheet -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+$r = Call "DELETE" ("/marks/assessments/" + $assessmentId) $faculty $null
+Check "faculty deletes assessment" ($r.code -eq 200) ((Json $r).message)
+$r = Call "GET" "/marks/my" $student $null
+Check "deleted assessment gone from student" (-not ((Json $r).data.marks | Where-Object { $_.assessmentId -eq $assessmentId })) "no deleted mark"
+
+# ---------------------------------------------------------------- ATTENDANCE
+Section "ATTENDANCE + CORRECTION AUDIT"
+$attendanceDate = "2026-09-21"
+$r = Call "GET" ("/attendance/sheet?courseId=1&date=" + $attendanceDate) $faculty $null
+$attendanceSheet = (Json $r).data
+Check "faculty attendance sheet" ($r.code -eq 200 -and $attendanceSheet.rows.Count -gt 0) ("rows=" + $attendanceSheet.rows.Count)
+$originalAttendance = @($attendanceSheet.rows)
+$originalRecords = @($originalAttendance | ForEach-Object { @{ studentId = $_.student.id; status = $_.status; remarks = $_.remarks } })
+$originalAttendanceBody = @{ courseId = 1; date = $attendanceDate; records = $originalRecords } | ConvertTo-Json -Compress
+$r = Call "PUT" "/attendance/sheet" $faculty $originalAttendanceBody
+Check "faculty saves attendance" ($r.code -eq 200 -and (Json $r).data.rows.Count -eq $originalAttendance.Count) ("rows=" + (Json $r).data.rows.Count)
+$studentAttendanceRow = $originalAttendance | Where-Object { $_.student.id -eq $studentId } | Select-Object -First 1
+if (-not $studentAttendanceRow) { $studentAttendanceRow = $originalAttendance[0] }
+$firstStudent = $studentAttendanceRow.student
+$firstRecordId = $studentAttendanceRow.recordId
+$correctionRecords = @($originalRecords | ForEach-Object {
+  if ($_.studentId -eq $firstStudent.id) { @{ studentId = $_.studentId; status = "ABSENT"; remarks = "Smoke correction" } }
+  else { $_ }
+})
+$correctionBody = @{ courseId = 1; date = $attendanceDate; records = $correctionRecords } | ConvertTo-Json -Compress
+$r = Call "PUT" "/attendance/sheet" $faculty $correctionBody
+$correctedSheet = (Json $r).data
+$correctedRow = $correctedSheet.rows | Where-Object { $_.student.id -eq $firstStudent.id } | Select-Object -First 1
+Check "attendance correction updates existing row" ($r.code -eq 200 -and $correctedRow.status -eq "ABSENT" -and $correctedRow.recordId -eq $firstRecordId) ("recordId=" + $correctedRow.recordId)
+Check "correction records audit name" ($correctedRow.updatedByName) ("updatedBy=" + $correctedRow.updatedByName)
+$r = Call "GET" "/attendance/my" $student $null
+$studentAttendance = (Json $r).data
+$course1 = $studentAttendance.courses | Where-Object { $_.course.id -eq 1 } | Select-Object -First 1
+$attendanceRecord = $course1.records | Where-Object { $_.attendanceDate -eq $attendanceDate } | Select-Object -First 1
+Check "student sees corrected attendance" ($attendanceRecord -and $attendanceRecord.status -eq "ABSENT") ("status=" + $attendanceRecord.status)
+$r = Call "PUT" "/attendance/sheet" $student $correctionBody
+Check "student cannot save attendance -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+$badAttendance = @{ courseId = 1; date = $attendanceDate; records = @(@{ studentId = $firstStudent.id; status = "MAYBE" }) } | ConvertTo-Json -Compress
+$r = Call "PUT" "/attendance/sheet" $faculty $badAttendance
+Check "invalid attendance status -> 400" ($r.code -eq 400) ((Json $r).message)
+$futureAttendance = @{ courseId = 1; date = (Get-Date).AddDays(1).ToString("yyyy-MM-dd"); records = @(@{ studentId = $firstStudent.id; status = "PRESENT" }) } | ConvertTo-Json -Compress
+$r = Call "PUT" "/attendance/sheet" $faculty $futureAttendance
+Check "future attendance -> 400" ($r.code -eq 400) ((Json $r).message)
+$r = Call "PUT" "/attendance/sheet" $faculty $originalAttendanceBody
+Check "restore original attendance" ($r.code -eq 200) ("rows=" + (Json $r).data.rows.Count)
+
+# ---------------------------------------------------------------- ASSIGNMENTS + UPLOADS
+Section "ASSIGNMENTS / SECURE UPLOAD / REVIEW"
+$tmpDir = Join-Path $env:TEMP ("sc-api-smoke-" + [guid]::NewGuid().ToString("N").Substring(0, 8))
+New-Item -ItemType Directory -Path $tmpDir | Out-Null
+$validFile = Join-Path $tmpDir "smoke.txt"
+$validPdf = Join-Path $tmpDir "smoke.pdf"
+$badFile = Join-Path $tmpDir "smoke.exe"
+$largeFile = Join-Path $tmpDir "large.txt"
+[System.IO.File]::WriteAllText($validFile, "Smart Campus smoke submission.")
+[System.IO.File]::WriteAllText($validPdf, "%PDF-1.4`nSmoke PDF")
+[System.IO.File]::WriteAllText($badFile, "not allowed")
+$largeBytes = New-Object byte[] (1572864)
+[System.IO.File]::WriteAllBytes($largeFile, $largeBytes)
+$assignmentTitle = "SMOKE-ASSIGNMENT-" + (Get-Random -Maximum 99999)
+$assignmentBody = @{
+  courseId = 1
+  title = $assignmentTitle
+  instructions = "Upload a short text file for the smoke test."
+  dueAt = "2030-01-01T23:59:00"
+  allowedFileTypes = "txt,pdf"
+  maxFileSizeMb = 1
+  maxScore = 10
+  allowLate = $false
+  allowResubmission = $true
+  published = $true
+} | ConvertTo-Json -Compress
+$r = Call "POST" "/assignments" $faculty $assignmentBody
+$assignment = (Json $r).data
+Check "faculty creates published assignment" ($r.code -eq 201 -and $assignment.id) ("id=" + $assignment.id)
+$assignmentId = $assignment.id
+$r = Call "GET" "/assignments" $student $null
+$studentAssignments = (Json $r).data
+$visibleAssignment = $studentAssignments | Where-Object { $_.id -eq $assignmentId } | Select-Object -First 1
+Check "student sees published assignment" ($r.code -eq 200 -and $visibleAssignment -and -not $visibleAssignment.mySubmission) ("assignments=" + $studentAssignments.Count)
+$r = UploadFile ("/assignments/" + $assignmentId + "/submit") $student $validFile "text/plain"
+$submission = (Json $r).data
+Check "student uploads valid file" ($r.code -eq 201 -and $submission.id -and $submission.status -eq "SUBMITTED") ("file=" + $submission.originalFileName)
+$submissionId = $submission.id
+$r = UploadFile ("/assignments/" + $assignmentId + "/submit") $student $badFile "application/octet-stream"
+Check "disallowed file type -> 400" ($r.code -eq 400) ((Json $r).message)
+$r = UploadFile ("/assignments/" + $assignmentId + "/submit") $student $largeFile "text/plain"
+Check "oversized file -> 400" ($r.code -eq 400) ((Json $r).message)
+$r = UploadFile ("/assignments/" + $assignmentId + "/submit") $student $validPdf "application/pdf"
+$resubmission = (Json $r).data
+Check "allowed resubmission replaces file" ($r.code -eq 201 -and $resubmission.attemptNo -eq 2) ("attempt=" + $resubmission.attemptNo)
+$r = UploadFile ("/assignments/" + $assignmentId + "/submit") $faculty $validFile "text/plain"
+Check "faculty cannot upload as student -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+$r = Call "PUT" ("/assignments/" + $assignmentId + "/submissions/" + $submissionId + "/review") $student '{"grade":8,"feedback":"x"}'
+Check "student cannot review -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+$r = Call "PUT" ("/assignments/" + $assignmentId + "/submissions/" + $submissionId + "/review") $faculty '{"grade":8,"feedback":"Smoke feedback"}'
+$reviewed = (Json $r).data
+Check "faculty reviews submission" ($r.code -eq 200 -and $reviewed.status -eq "GRADED" -and $reviewed.grade -eq 8) ("grade=" + $reviewed.grade)
+$r = Call "GET" "/assignments" $student $null
+$gradedAssignment = (Json $r).data | Where-Object { $_.id -eq $assignmentId } | Select-Object -First 1
+Check "student sees grade + feedback" ($gradedAssignment.mySubmission.status -eq "GRADED" -and $gradedAssignment.mySubmission.feedback -eq "Smoke feedback") ("grade=" + $gradedAssignment.mySubmission.grade)
+$r = DownloadFile ("/assignments/submissions/" + $submissionId + "/file") $student
+Check "student downloads own file" ($r.code -eq 200 -and $r.length -gt 0) ("bytes=" + $r.length)
+$r = DownloadFile ("/assignments/submissions/" + $submissionId + "/file") $faculty
+Check "faculty downloads managed submission" ($r.code -eq 200 -and $r.length -gt 0) ("bytes=" + $r.length)
+$r = DownloadFile ("/assignments/submissions/" + $submissionId + "/file") $null
+Check "anonymous download -> 401" ($r.code -eq 401) ("HTTP " + $r.code)
+$lateTitle = "SMOKE-LATE-" + (Get-Random -Maximum 99999)
+$lateBody = @{
+  courseId = 1
+  title = $lateTitle
+  instructions = "Late submissions are disabled."
+  dueAt = "2020-01-01T23:59:00"
+  allowedFileTypes = "txt"
+  maxFileSizeMb = 1
+  maxScore = 10
+  allowLate = $false
+  allowResubmission = $false
+  published = $true
+} | ConvertTo-Json -Compress
+$r = Call "POST" "/assignments" $faculty $lateBody
+$lateAssignment = (Json $r).data
+Check "create closed assignment" ($r.code -eq 201) ("id=" + $lateAssignment.id)
+$r = UploadFile ("/assignments/" + $lateAssignment.id + "/submit") $student $validFile "text/plain"
+Check "late upload rejected -> 400" ($r.code -eq 400) ((Json $r).message)
+$r = Call "DELETE" ("/assignments/" + $lateAssignment.id) $faculty $null
+Check "delete closed assignment" ($r.code -eq 200) ((Json $r).message)
+$r = Call "POST" "/assignments" $student $assignmentBody
+Check "student cannot create assignment -> 403" ($r.code -eq 403) ("HTTP " + $r.code)
+$r = Call "DELETE" ("/assignments/" + $assignmentId) $faculty $null
+Check "delete assignment + stored files" ($r.code -eq 200) ((Json $r).message)
+$r = DownloadFile ("/assignments/submissions/" + $submissionId + "/file") $student
+Check "deleted submission file -> 404" ($r.code -eq 404) ("HTTP " + $r.code)
+Remove-Item $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
 
 # ---------------------------------------------------------------- LOGOUT
 Section "SESSION LIFECYCLE"

@@ -207,4 +207,41 @@ public class CourseRepository extends JdbcSupport
         return query(BASE_SELECT + " WHERE c.faculty_id IS NULL ORDER BY c.semester, c.course_code",
                 COURSE_ROW);
     }
+
+    // ==================================================================
+    //  Academic module look-ups
+    // ==================================================================
+
+    public List<Course> findAllActive() {
+        return query(BASE_SELECT + " WHERE c.status = 'ACTIVE' ORDER BY c.semester, c.course_code",
+                COURSE_ROW);
+    }
+
+    public List<Course> findActiveByFacultyId(Long facultyId) {
+        return query(BASE_SELECT
+                        + " WHERE c.faculty_id = ? AND c.status = 'ACTIVE'"
+                        + " ORDER BY c.semester, c.course_code",
+                COURSE_ROW, facultyId);
+    }
+
+    public List<Course> findActiveByDepartmentAndSemester(String department, int semester) {
+        return query(BASE_SELECT
+                        + " WHERE c.department = ? AND c.semester = ? AND c.status = 'ACTIVE'"
+                        + " ORDER BY c.course_code",
+                COURSE_ROW, department, semester);
+    }
+
+    /**
+     * True when the faculty member teaches at least one active subject in the
+     * student's department + semester.  This is the implicit enrollment rule
+     * used throughout the academic module.
+     */
+    public boolean existsActiveForFacultyAndClass(Long facultyId, String department, int semester) {
+        return exists("""
+                SELECT COUNT(*) FROM courses c
+                WHERE c.faculty_id = ?
+                  AND c.department = ?
+                  AND c.semester = ?
+                  AND c.status = 'ACTIVE'""", facultyId, department, semester);
+    }
 }

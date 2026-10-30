@@ -16,6 +16,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.smartcampus.dto.ApiResponse;
@@ -50,7 +51,8 @@ public class GlobalExceptionHandler {
             CourseNotFoundException.class,
             ResourceNotFoundException.class,
             ActivityNotFoundException.class,
-            UserNotFoundException.class
+            UserNotFoundException.class,
+            AcademicNotFoundException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleNotFound(SmartCampusException ex) {
         return respond(HttpStatus.NOT_FOUND, ex.getMessage());
@@ -84,6 +86,14 @@ public class GlobalExceptionHandler {
                 : fieldErrors.values().iterator().next();
         ApiResponse<Void> body = ApiResponse.error(message, fieldErrors);
         return ResponseEntity.badRequest().body(body);
+    }
+
+    /** The servlet container rejected an upload before the controller ran. */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUploadTooLarge(
+            MaxUploadSizeExceededException ex) {
+        return respond(HttpStatus.BAD_REQUEST,
+                "The uploaded file is larger than the server limit. Please choose a smaller file.");
     }
 
     /** Body JSON could not be parsed (wrong date format, unknown enum value...). */

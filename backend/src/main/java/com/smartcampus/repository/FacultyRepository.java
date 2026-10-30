@@ -207,4 +207,9 @@ public class FacultyRepository extends JdbcSupport
         return query("SELECT DISTINCT designation FROM faculty ORDER BY designation",
                 (rs, rowNum) -> str(rs, "designation"));
     }
+
+    /** Active faculty used by the class teacher / mentor assignment dropdowns. */
+    public List<Faculty> findAllActive() {
+        return query(BASE_SELECT + " WHERE status = 'ACTIVE' ORDER BY name ASC", FACULTY_ROW);
+    }
 }

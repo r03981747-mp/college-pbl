@@ -170,6 +170,19 @@ public abstract class JdbcSupport {
         return rs.getInt(column);
     }
 
+    /** Null-safe {@code getBigDecimal} for nullable numeric columns. */
+    protected static java.math.BigDecimal nullableDecimal(ResultSet rs, String column)
+            throws SQLException {
+        return rs.getBigDecimal(column);
+    }
+
+    /** {@code getBigDecimal} with a defensive zero when the column is NULL. */
+    protected static java.math.BigDecimal decimal(ResultSet rs, String column)
+            throws SQLException {
+        java.math.BigDecimal value = rs.getBigDecimal(column);
+        return value == null ? java.math.BigDecimal.ZERO : value;
+    }
+
     /** Null-safe {@code getDate} -> {@link LocalDate}. */
     protected static LocalDate date(ResultSet rs, String column) throws SQLException {
         java.sql.Date value = rs.getDate(column);
